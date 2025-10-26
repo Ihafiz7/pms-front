@@ -1,18 +1,56 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
+import { DragDropModule } from '@angular/cdk/drag-drop';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
+import { AuthInterceptor } from './interceptors/auth.interceptor';
+import { JwtModule } from '@auth0/angular-jwt';
+import { NavbarComponent } from './components/navbar/navbar.component';
+import { SidepanelComponent } from './components/sidepanel/sidepanel.component';
+import { LoginComponent } from './components/login/login.component';
+import { RegisterComponent } from './components/register/register.component';
+import { TaskComponent } from './components/task/task.component';
+import { ProjectBoardComponent } from './components/project-board/project-board.component';
+import { KanbanBoardComponent } from './components/kanban-board/kanban-board.component';
+import { BoardModalsComponent } from './components/board-modals/board-modals.component';
+
 
 @NgModule({
   declarations: [
-    AppComponent
+    AppComponent,
+    NavbarComponent,
+    SidepanelComponent,
+    LoginComponent,
+    RegisterComponent,
+    TaskComponent,
+    ProjectBoardComponent,
+    KanbanBoardComponent,
+    BoardModalsComponent
   ],
   imports: [
     BrowserModule,
-    AppRoutingModule
+    AppRoutingModule,
+    FormsModule,
+    ReactiveFormsModule,
+    HttpClientModule,
+    DragDropModule,
+    JwtModule.forRoot({
+      config: {
+        tokenGetter: () => localStorage.getItem('token'),
+        allowedDomains: ['localhost:8080'],
+        disallowedRoutes: [
+          'http://localhost:8080/pms/auth/signin',
+          'http://localhost:8080/pms/auth/signup'
+        ]
+      }
+    })
   ],
-  providers: [],
+  providers: [
+    { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

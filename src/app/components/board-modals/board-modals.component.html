@@ -1,0 +1,287 @@
+<!-- Backdrop -->
+<div *ngIf="visible"
+    class="fixed inset-0 bg-black bg-opacity-50 z-50 transition-opacity duration-300"
+    (click)="onClose()">
+
+    <!-- Modal Container - True Full Screen -->
+    <div class="fixed inset-0 bg-white shadow-xl flex flex-col"
+        (click)="$event.stopPropagation()">
+
+        <!-- Header -->
+        <div class="flex-shrink-0 flex justify-between items-center p-6 border-b border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-800">
+                {{ modalTitle }}
+            </h2>
+            <button (click)="onClose()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Warning for No Users - Only show for task modal -->
+        <div *ngIf="isTaskModal && !hasUsers" class="flex-shrink-0 bg-yellow-50 border-b border-yellow-200 p-4">
+            <div class="flex">
+                <svg class="w-5 h-5 text-yellow-400 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd"
+                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                        clip-rule="evenodd" />
+                </svg>
+                <div>
+                    <p class="text-yellow-800 text-sm font-medium">No users available in this project</p>
+                    <p class="text-yellow-700 text-sm mt-1">You need to add users to the project before creating tasks.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content - Takes ALL remaining space with NO scrolling -->
+        <div class="flex-1 p-6">
+            <!-- Task Form - Uses full available space -->
+            <form *ngIf="isTaskModal" [formGroup]="taskForm" (ngSubmit)="onSubmit()" class="h-full">
+                <!-- Full height grid that uses all space -->
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-8 h-full">
+                    
+                    <!-- Left Column - Basic Info -->
+                    <div class="space-y-6 flex flex-col">
+                        <!-- Title -->
+                        <div class="flex-shrink-0">
+                            <label for="taskTitle" class="block text-sm font-medium text-gray-700 mb-2">
+                                Title *
+                            </label>
+                            <input type="text" id="taskTitle" formControlName="title"
+                                class="w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                                placeholder="Enter task title">
+                            <div *ngIf="taskForm.get('title')?.invalid && taskForm.get('title')?.touched"
+                                class="text-red-500 text-sm mt-2">
+                                Title is required
+                            </div>
+                        </div>
+
+                        <!-- Description - Takes available space -->
+                        <div class="flex-1 flex flex-col">
+                            <label for="taskDescription" class="block text-sm font-medium text-gray-700 mb-2">
+                                Description
+                            </label>
+                            <textarea id="taskDescription" formControlName="description"
+                                class="flex-1 w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                                placeholder="Enter task description"></textarea>
+                        </div>
+
+                        <!-- Additional Fields at Bottom -->
+                        <div class="space-y-4 flex-shrink-0">
+                            <!-- Dependencies -->
+                            <div>
+                                <label for="taskDependencies" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Dependencies (Task IDs)
+                                </label>
+                                <input type="text" id="taskDependencies" formControlName="dependencies"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="e.g., 1,2,3">
+                                <p class="text-xs text-gray-500 mt-1">Enter comma-separated task IDs that this task depends on</p>
+                            </div>
+
+                            <!-- Parent Task -->
+                            <div *ngIf="isEditMode">
+                                <label for="taskParentTask" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Parent Task ID
+                                </label>
+                                <input type="number" id="taskParentTask" formControlName="parentTaskId" min="1"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="Optional parent task ID">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column - Details -->
+                    <div class="space-y-6 flex flex-col">
+                        <!-- Column Settings -->
+                        <div class="grid grid-cols-1 gap-4 flex-shrink-0">
+                            <!-- Column -->
+                            <div>
+                                <label for="taskColumn" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Column *
+                                </label>
+                                <select id="taskColumn" formControlName="columnId"
+                                    class="w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    [class.border-red-300]="taskForm.get('columnId')?.invalid && taskForm.get('columnId')?.touched">
+                                    <option value="">Select a column</option>
+                                    <option *ngFor="let column of columns" [value]="column.columnId">
+                                        {{ column.name }}
+                                    </option>
+                                </select>
+                                <div *ngIf="taskForm.get('columnId')?.invalid && taskForm.get('columnId')?.touched"
+                                    class="text-red-500 text-sm mt-2">
+                                    Column is required
+                                </div>
+                                <div *ngIf="!hasColumns" class="text-amber-600 text-sm mt-2">
+                                    No columns available. Please create a column first.
+                                </div>
+                            </div>
+
+                            <!-- Priority -->
+                            <div>
+                                <label for="taskPriority" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Priority
+                                </label>
+                                <select id="taskPriority" formControlName="priority"
+                                    class="w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <option *ngFor="let priority of priorityOptions" [value]="priority">
+                                        {{ priority }}
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Due Date & Assignee -->
+                        <div class="grid grid-cols-1 gap-4 flex-shrink-0">
+                            <!-- Due Date -->
+                            <div>
+                                <label for="taskDueDate" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Due Date
+                                </label>
+                                <input type="date" id="taskDueDate" formControlName="dueDate"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+
+                            <!-- Assignee -->
+                            <div>
+                                <label for="taskAssignee" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Assignee *
+                                </label>
+                                <select id="taskAssignee" formControlName="assigneeId"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    [class.border-red-300]="taskForm.get('assigneeId')?.invalid && taskForm.get('assigneeId')?.touched">
+                                    <option value="">Select an assignee</option>
+                                    <option *ngFor="let user of users" [value]="user.userId">
+                                        {{ getUserDisplayName(user) }}
+                                    </option>
+                                </select>
+                                <div *ngIf="taskForm.get('assigneeId')?.invalid && taskForm.get('assigneeId')?.touched"
+                                    class="text-red-500 text-sm mt-2">
+                                    Assignee is required
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Additional Fields - Takes remaining space -->
+                        <div class="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <!-- Estimated Hours -->
+                            <div class="flex flex-col">
+                                <label for="taskEstimatedHours" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Est. Hours
+                                </label>
+                                <input type="number" id="taskEstimatedHours" formControlName="estimatedHours" min="0" step="0.5"
+                                    class="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="0">
+                            </div>
+
+                            <!-- Actual Hours -->
+                            <div class="flex flex-col">
+                                <label for="taskActualHours" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Actual Hours
+                                </label>
+                                <input type="number" id="taskActualHours" formControlName="actualHours" min="0" step="0.5"
+                                    class="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="0">
+                            </div>
+
+                            <!-- Progress Percentage -->
+                            <div class="flex flex-col">
+                                <label for="taskProgressPercentage" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Progress (%)
+                                </label>
+                                <input type="number" id="taskProgressPercentage" formControlName="progressPercentage" min="0"
+                                    max="100"
+                                    class="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Column Form - Centered and full width -->
+            <form *ngIf="isColumnModal" [formGroup]="columnForm" (ngSubmit)="onSubmit()" class="h-full flex items-center justify-center">
+                <div class="w-full max-w-2xl space-y-6">
+                    <!-- Name -->
+                    <div>
+                        <label for="columnName" class="block text-sm font-medium text-gray-700 mb-2">
+                            Name *
+                        </label>
+                        <input type="text" id="columnName" formControlName="name"
+                            class="w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                            placeholder="Enter column name">
+                        <div *ngIf="columnForm.get('name')?.invalid && columnForm.get('name')?.touched"
+                            class="text-red-500 text-sm mt-2">
+                            Name is required
+                        </div>
+                    </div>
+
+                    <!-- Color -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-3">
+                            Color
+                        </label>
+                        <div class="flex flex-wrap gap-4">
+                            <button type="button" *ngFor="let color of colorOptions" (click)="selectColor(color)"
+                                class="w-12 h-12 rounded-full border-3 transition-all hover:scale-110 hover:shadow-lg"
+                                [style.backgroundColor]="color"
+                                [class.border-gray-900]="columnForm.get('color')?.value === color"
+                                [class.border-gray-300]="columnForm.get('color')?.value !== color" [title]="color">
+                            </button>
+                        </div>
+                        <input type="hidden" formControlName="color">
+                    </div>
+
+                    <!-- WIP Limit -->
+                    <div>
+                        <label for="columnWipLimit" class="block text-sm font-medium text-gray-700 mb-2">
+                            WIP Limit (Optional)
+                        </label>
+                        <input type="number" id="columnWipLimit" formControlName="wipLimit" min="1"
+                            class="w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Enter WIP limit">
+                        <div *ngIf="columnForm.get('wipLimit')?.invalid && columnForm.get('wipLimit')?.touched"
+                            class="text-red-500 text-sm mt-2">
+                            WIP limit must be at least 1
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Maximum number of tasks allowed in this column</p>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex-shrink-0 flex justify-between items-center p-6 border-t border-gray-200 bg-gray-50">
+            <!-- Delete Button (Edit Mode Only) -->
+            <div>
+                <button *ngIf="showDeleteButton" type="button" (click)="onDelete()"
+                    class="px-6 py-3 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg shadow-sm hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
+                    Delete
+                </button>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex space-x-4">
+                <button type="button" (click)="onClose()"
+                    class="px-8 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                    Cancel
+                </button>
+                <button type="button" (click)="onSubmit()"
+                    [disabled]="(isTaskModal && (taskForm.invalid || !hasColumns || !hasUsers)) || (isColumnModal && columnForm.invalid)"
+                    class="px-8 py-3 text-sm font-medium text-white bg-blue-500 border border-transparent rounded-lg shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                    {{ submitButtonText }}
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div *ngIf="loading"
+            class="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center">
+            <div class="flex flex-col items-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-3"></div>
+                <p class="text-sm text-gray-600">Saving...</p>
+            </div>
+        </div>
+    </div>
+</div>

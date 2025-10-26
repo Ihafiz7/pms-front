@@ -1,0 +1,9 @@
+.kanban-scrollbar {
+  overflow-x: auto;
+  overflow-y: scroll; /* still scrollable vertically */
+  scrollbar-width: none; /* Firefox */
+}
+
+.kanban-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
