@@ -1,0 +1,17 @@
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Uploaded to: SVG Repo, www.svgrepo.com, Transformed by: SVG Repo Mixer Tools -->
+<svg width="800px" height="800px" viewBox="0 0 1024 1024" class="icon" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="#000000">
+<g id="SVGRepo_bgCarrier" stroke-width="0"/>
+<g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"/>
+<g id="SVGRepo_iconCarrier">
+<path d="M149.333333 661.333333h213.333334v213.333334H149.333333zM753.066667 411.733333l-119.466667-119.466666c-8.533333-8.533333-8.533333-21.333333 0-29.866667l119.466667-119.466667c8.533333-8.533333 21.333333-8.533333 29.866666 0l119.466667 119.466667c8.533333 8.533333 8.533333 21.333333 0 29.866667l-119.466667 119.466666c-8.533333 8.533333-21.333333 8.533333-29.866666 0z" fill="#000d0f"/>
+<path d="M256 277.333333m-128 0a128 128 0 1 0 256 0 128 128 0 1 0-256 0Z" fill="#0b0e1e"/>
+<path d="M768 768m-128 0a128 128 0 1 0 256 0 128 128 0 1 0-256 0Z" fill="#000e24"/>
+<path d="M234.666667 512h42.666666v106.666667h-42.666666z" fill="#ff0000"/>
+<path d="M256 448l-64 85.333333h128z" fill="#ff0000"/>
+<path d="M426.666667 256h106.666666v42.666667h-106.666666z" fill="#ff0000"/>
+<path d="M597.333333 277.333333l-85.333333-64v128z" fill="#ff0000"/>
+<path d="M746.666667 448h42.666666v106.666667h-42.666666z" fill="#ff0000"/>
+<path d="M768 618.666667l64-85.333334h-128z" fill="#ff0000"/>
+</g>
+</svg>

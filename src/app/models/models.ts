@@ -1,3 +1,5 @@
+import { ProjectMemberResponseDTO } from "./projectMember";
+
 export interface ColumnResponse {
   columnId: number;
   name: string;
@@ -102,10 +104,9 @@ export enum ProjectStatus {
 }
 
 export enum ProjectRole {
-  OWNER = 'OWNER',
   MANAGER = 'MANAGER',
-  DEVELOPER = 'DEVELOPER',
-  VIEWER = 'VIEWER'
+  ADMIN = 'ADMIN',
+  MEMBER = 'MEMBER'
 }
 
 export enum TaskStatus {

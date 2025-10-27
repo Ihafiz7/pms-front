@@ -16,6 +16,7 @@ import { TaskComponent } from './components/task/task.component';
 import { ProjectBoardComponent } from './components/project-board/project-board.component';
 import { KanbanBoardComponent } from './components/kanban-board/kanban-board.component';
 import { BoardModalsComponent } from './components/board-modals/board-modals.component';
+import { UserManagementsComponent } from './components/user-managements/user-managements.component';
 
 
 @NgModule({
@@ -28,7 +29,8 @@ import { BoardModalsComponent } from './components/board-modals/board-modals.com
     TaskComponent,
     ProjectBoardComponent,
     KanbanBoardComponent,
-    BoardModalsComponent
+    BoardModalsComponent,
+    UserManagementsComponent
   ],
   imports: [
     BrowserModule,

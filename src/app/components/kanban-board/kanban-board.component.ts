@@ -17,6 +17,7 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
   tasks: Record<number, Task[]> = {};
   users: User[] = [];
   currentProjectId!: number;
+  isSidebarOpen = false;
 
   loading = false;
   isDragging = false;
@@ -52,8 +53,14 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
+  toggleSidebar(): void {
+    this.isSidebarOpen = !this.isSidebarOpen;
+  }
+
   // Loading
   loadBoardData(): void {
+    console.log("------------------------");
+    
     this.loading = true;
     this.columnService.getColumnsByProject(this.currentProjectId).pipe(takeUntil(this.destroy$)).subscribe({
       next: (cols) => {
@@ -612,6 +619,7 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
           this.deleteColumnLocal(columnId);
           this.loading = false;
           this.showNotification('Column deleted successfully', 'success');
+          this.loadBoardData();
         },
         error: (err) => {
           console.error('Error deleting column', err);

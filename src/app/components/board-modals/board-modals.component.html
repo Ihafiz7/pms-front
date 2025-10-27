@@ -1,10 +1,10 @@
 <!-- Backdrop -->
 <div *ngIf="visible"
-    class="fixed inset-0 bg-black bg-opacity-50 z-50 transition-opacity duration-300"
+    class="fixed inset-0 bg-black bg-opacity-50 z-50 transition-opacity duration-300 flex items-center justify-center p-4"
     (click)="onClose()">
 
-    <!-- Modal Container - True Full Screen -->
-    <div class="fixed inset-0 bg-white shadow-xl flex flex-col"
+    <!-- Modal Container - 75% width -->
+    <div class="bg-white shadow-xl rounded-xl flex flex-col w-full max-w-[75vw] h-[90vh]"
         (click)="$event.stopPropagation()">
 
         <!-- Header -->
@@ -34,8 +34,8 @@
             </div>
         </div>
 
-        <!-- Content - Takes ALL remaining space with NO scrolling -->
-        <div class="flex-1 p-6">
+        <!-- Content - Takes ALL remaining space with scrolling if needed -->
+        <div class="flex-1 p-6 overflow-y-auto">
             <!-- Task Form - Uses full available space -->
             <form *ngIf="isTaskModal" [formGroup]="taskForm" (ngSubmit)="onSubmit()" class="h-full">
                 <!-- Full height grid that uses all space -->
@@ -277,7 +277,7 @@
 
         <!-- Loading Overlay -->
         <div *ngIf="loading"
-            class="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center">
+            class="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center rounded-xl">
             <div class="flex flex-col items-center">
                 <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-3"></div>
                 <p class="text-sm text-gray-600">Saving...</p>
