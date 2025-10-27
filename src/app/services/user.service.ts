@@ -27,6 +27,7 @@ export class UserService extends BaseService {
   }
 
   getUsersByProject(projectId: number): Observable<User[]> {
+    console.log(`${this.baseUrl}/users/project/${projectId}`);
     return this.http.get<User[]>(`${this.baseUrl}/users/project/${projectId}`)
       .pipe(catchError(this.handleError));
   }

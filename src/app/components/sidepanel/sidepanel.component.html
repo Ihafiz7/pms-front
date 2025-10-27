@@ -1,14 +1,8 @@
-<div
-  [class.w-64]="isSidebarOpen"
-  [class.w-20]="!isSidebarOpen"
-  class="bg-white shadow-lg transition-all duration-300 flex flex-col h-screen border-r border-gray-200"
->
+<div [class.w-64]="isSidebarOpen" [class.w-20]="!isSidebarOpen"
+  class="bg-white shadow-lg transition-all duration-300 flex flex-col h-screen border-r border-gray-200">
   <!-- Header -->
   <div class="flex items-center justify-center  p-4 border-b border-gray-200">
-    <span
-      *ngIf="isSidebarOpen"
-      class="text-xl font-bold text-orange-600"
-    >
+    <span *ngIf="isSidebarOpen" class="text-xl font-bold text-orange-600">
       PMS
     </span>
     <span *ngIf="!isSidebarOpen" class="text-orange-600 font-bold text-xl">PMS</span>
@@ -18,15 +12,9 @@
   <nav class="flex-1 p-2">
     <ul class="space-y-2">
       <li *ngFor="let item of menuItems">
-        <a
-          href="#"
-          class="flex items-center p-2 rounded-lg hover:bg-orange-50 text-gray-700 transition-colors"
-        >
-          <img
-            [src]="item.icon"
-            alt="{{ item.label }}"
-            class="w-5 h-5"
-          />
+        <a [routerLink]="item.route" routerLinkActive="bg-orange-100 border-r-4 border-orange-500"
+          class="flex items-center p-2 rounded-lg hover:bg-orange-50 text-gray-700 transition-colors">
+          <img [src]="item.icon" alt="{{ item.label }}" class="w-5 h-5" />
           <span *ngIf="isSidebarOpen" class="text-orange-600 ml-3 font-medium">
             {{ item.label }}
           </span>

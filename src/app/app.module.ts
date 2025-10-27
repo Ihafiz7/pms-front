@@ -17,6 +17,7 @@ import { ProjectBoardComponent } from './components/project-board/project-board.
 import { KanbanBoardComponent } from './components/kanban-board/kanban-board.component';
 import { BoardModalsComponent } from './components/board-modals/board-modals.component';
 import { UserManagementsComponent } from './components/user-managements/user-managements.component';
+import { GanttChartComponent } from './components/gantt-chart/gantt-chart.component';
 
 
 @NgModule({
@@ -30,7 +31,8 @@ import { UserManagementsComponent } from './components/user-managements/user-man
     ProjectBoardComponent,
     KanbanBoardComponent,
     BoardModalsComponent,
-    UserManagementsComponent
+    UserManagementsComponent,
+    GanttChartComponent
   ],
   imports: [
     BrowserModule,

@@ -9,8 +9,9 @@ export class SidepanelComponent {
   @Input() isSidebarOpen = false;
 
   menuItems = [
-    { label: 'Kanban', icon: 'assets/icons/kanban.svg' },
-    { label: 'Users', icon: 'assets/icons/users.svg' },
+    { label: 'project', icon: 'assets/icons/kanban.svg', route:'projects' },
+    { label: 'Users', icon: 'assets/icons/users.svg',route:'/users' },
+    { label: 'Gantt', icon: 'assets/icons/gantt.svg',route:'/gantt' },
     { label: 'Team', icon: 'assets/icons/team.svg' },
     { label: 'Discussion', icon: 'assets/icons/discussion.svg' },
     { label: 'Files', icon: 'assets/icons/files.svg' },
@@ -21,3 +22,4 @@ export class SidepanelComponent {
     { label: 'Settings', icon: 'assets/icons/settings.svg' },
   ];
 }
+

@@ -392,6 +392,8 @@ export class AuthService extends BaseService {
 
   getRole(): string | null {
     const user = this.currentUserSubject.value || this.getUserFromToken();
+    console.log(user?.role || null);
+    
     return user?.role || null;
   }
 
@@ -456,37 +458,26 @@ export class AuthService extends BaseService {
   }
 
   private setAuthState(token: string, authResponse: AuthResponse): void {
-    localStorage.setItem(this.TOKEN_KEY, token);
-    
-    // Try to create user profile from authResponse first, then from token
-    let userProfile: UserProfile;
-    
-    if (authResponse.userId && authResponse.email) {
-      userProfile = {
-        userId: authResponse.userId,
-        email: authResponse.email,
-        firstName: authResponse.firstName || 'User',
-        lastName: authResponse.lastName || '',
-        role: authResponse.role || 'USER',
-        isActive: true,
-        createdAt: new Date()
-      };
-    } else {
-      // Fallback to token extraction
-      userProfile = this.getUserFromToken() || {
-        userId: this.getUserIdFromToken(token),
-        email: this.getEmailFromToken(token),
-        firstName: this.getFirstNameFromToken(token),
-        lastName: this.getLastNameFromToken(token),
-        role: this.getRoleFromToken(token),
-        isActive: true,
-        createdAt: new Date()
-      };
-    }
+  localStorage.setItem(this.TOKEN_KEY, token);
+  
+  // Decode the JWT first
+  const decoded = this.jwtHelper.decodeToken(token);
+  console.log('Decoded JWT inside setAuthState:', decoded);
 
-    this.currentUserSubject.next(userProfile);
-    this.saveUserToStorage(userProfile);
-  }
+  // Build user profile correctly from token first
+  const userProfile: UserProfile = {
+    userId: decoded.userId || authResponse.userId || 0,
+    email: decoded.sub || authResponse.email || 'unknown@example.com',
+    firstName: authResponse.firstName || 'User',
+    lastName: authResponse.lastName || '',
+    role: decoded.Role || decoded.role || decoded.authorities?.[0] || authResponse.role || 'USER',
+    isActive: true,
+    createdAt: new Date(decoded.iat * 1000)
+  };
+
+  this.currentUserSubject.next(userProfile);
+  this.saveUserToStorage(userProfile);
+}
 
   private getUserFromToken(): UserProfile | null {
     const token = this.getToken();

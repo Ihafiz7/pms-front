@@ -10,7 +10,7 @@ import { BaseService } from './base.service';
 })
 export class ProjectBoardService extends BaseService {
   private projectEndpoint = 'projects';
-  private projectMembersEndpoint = 'projectMembers';
+  private projectMembersEndpoint = 'project-members';
 
   constructor(private http: HttpClient, private authService: AuthService) {
     super();

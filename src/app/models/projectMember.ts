@@ -1,4 +1,4 @@
-import { User } from "./models";
+import { ProjectRole, User } from "./models";
 
 export interface ProjectMemberResponseDTO {
   memberId: number;
@@ -27,11 +27,11 @@ export interface ProjectSummaryDTO {
 //   createdAt: string;
 // }
 
-export enum ProjectRole {
-  OWNER = 'OWNER',
-  ADMIN = 'ADMIN',
-  MEMBER = 'MEMBER'
-}
+// export enum ProjectRole {
+//   OWNER = 'OWNER',
+//   ADMIN = 'ADMIN',
+//   MEMBER = 'MEMBER'
+// }
 
 export interface AddMembersRequest {
   userIds: number[];

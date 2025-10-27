@@ -1,7 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { FormGroup, FormBuilder, Validators } from '@angular/forms';
-import { Project, User } from 'src/app/models/models';
-import { ProjectMemberResponseDTO, ProjectRole } from 'src/app/models/projectMember';
+import { ActivatedRoute, Route } from '@angular/router';
+import { catchError, of, forkJoin, takeUntil, Subject } from 'rxjs';
+import { Project, ProjectRole, User } from 'src/app/models/models';
+import { ProjectMemberResponseDTO } from 'src/app/models/projectMember';
 import { AuthService } from 'src/app/services/auth.service';
 import { ProjectMemberService } from 'src/app/services/project-member.service';
 import { ProjectService } from 'src/app/services/project.service';
@@ -19,8 +21,9 @@ export interface SafeProject extends Project {
 export class UserManagementsComponent implements OnInit {
   projects: SafeProject[] = [];
   allUsers: User[] = [];
-  currentUser: User | null = null;  // Use User interface
+  currentUser: User | null = null;
   loading = false;
+  ProjectRole = ProjectRole;
 
   // Modal states
   showAddUserModal = false;
@@ -36,12 +39,17 @@ export class UserManagementsComponent implements OnInit {
   searchTerm = '';
   roleFilter = '';
 
+   // layout
+  isSidebarOpen = false;
+
+
   constructor(
     private authService: AuthService,
     private userService: UserService,
     private projectService: ProjectService,
     private projectMemberService: ProjectMemberService,
-    private fb: FormBuilder
+    private fb: FormBuilder,
+    private route: ActivatedRoute
   ) {
     this.addUserForm = this.createAddUserForm();
     this.editUserForm = this.createEditUserForm();
@@ -51,39 +59,36 @@ export class UserManagementsComponent implements OnInit {
     this.loadCurrentUser();
     this.loadAllUsers();
   }
+  toggleSidebar(): void {
+    this.isSidebarOpen = !this.isSidebarOpen;
+  }
 
-  loadCurrentUser(): void {
+  private loadCurrentUser(): void {
     this.authService.currentUser$.subscribe({
       next: (user) => {
-        console.log('Current user received:', user);
-        this.currentUser = user as User; // Cast to User interface
-
-        if (user && user.userId) {  // Use userId instead of id
-          console.log('User ID available:', user.userId);
+        if (user) {
+          this.currentUser = user as User;
           this.loadData();
         } else {
-          console.log('User or user ID not available, fetching profile...');
+          // Ensure profile is loaded if currentUser$ is null
           this.authService.getProfile().subscribe({
             next: (profile) => {
-              console.log('Profile loaded:', profile);
               this.currentUser = profile as User;
               this.loadData();
             },
-            error: (error) => {
-              console.error('Error loading profile:', error);
-              this.loading = false;
+            error: (err) => {
+              console.error('Failed to load profile', err);
             }
           });
         }
       },
-      error: (error) => {
-        console.error('Error in currentUser$ subscription:', error);
-        this.loading = false;
+      error: (err) => {
+        console.error('Error subscribing to currentUser$', err);
       }
     });
   }
 
-  loadData(): void {
+  private loadData(): void {
     this.loading = true;
 
     if (this.isAdmin()) {
@@ -92,43 +97,53 @@ export class UserManagementsComponent implements OnInit {
       this.loadUserProjects();
     }
 
+    // If the current user can manage users then ensure the user list is loaded
     if (this.canManageUsers()) {
       this.loadAllUsers();
     }
   }
 
-  loadAllProjects(): void {
+  private loadAllProjects(): void {
     this.projectService.getAllProjects().subscribe({
-      next: (projects) => {
-        this.loadProjectsWithMembers(projects);
-      },
-      error: (error) => {
-        console.error('Error loading projects:', error);
+      next: (projects) => this.loadProjectsWithMembers(projects),
+      error: (err) => {
+        console.error('Error loading projects:', err);
         this.loading = false;
       }
     });
   }
 
-  loadUserProjects(): void {
-    // Use userId instead of id
+  private loadUserProjects(): void {
     if (!this.currentUser?.userId) {
-      console.error('User ID is not available');
+      console.error('User ID not available for loading user projects');
       this.loading = false;
       return;
     }
 
-    console.log('Loading projects for user ID:', this.currentUser.userId);
-
     this.projectMemberService.getUserProjects(this.currentUser.userId).subscribe({
-      next: (projectSummaries) => {
-        console.log('User projects loaded:', projectSummaries);
-        const projectPromises = projectSummaries.map(summary =>
-          this.projectService.getProjectById(summary.projectId).toPromise()
-        );
+      next: (projectSummaries: any[]) => {
+        const projectFetches = (projectSummaries || []).map(summary => {
+          const projectId = summary?.projectId ?? summary?.id ?? null;
+          if (!projectId) {
+            return of(null);
+          }
+          return this.projectService.getProjectById(projectId).pipe(
+            catchError(err => {
+              console.error('Failed to load project', projectId, err);
+              return of(null);
+            })
+          );
+        });
 
-        Promise.all(projectPromises).then(projects => {
-          const validProjects = projects.filter(p => p !== undefined) as Project[];
-          this.loadProjectsWithMembers(validProjects);
+        forkJoin(projectFetches).subscribe({
+          next: (projects: (Project | null)[]) => {
+            const validProjects = (projects || []).filter(p => !!p) as Project[];
+            this.loadProjectsWithMembers(validProjects);
+          },
+          error: (err) => {
+            console.error('Error loading projects', err);
+            this.loading = false;
+          }
         });
       },
       error: (error) => {
@@ -138,66 +153,56 @@ export class UserManagementsComponent implements OnInit {
     });
   }
 
-  loadProjectsWithMembers(projects: Project[]): void {
-    const memberPromises = projects.map(project =>
-      this.projectMemberService.getProjectMembers(project.projectId).toPromise()
+  private loadProjectsWithMembers(projects: Project[]): void {
+    if (!projects || projects.length === 0) {
+      this.projects = [];
+      this.loading = false;
+      return;
+    }
+
+    const membersObservables = projects.map(p =>
+      this.projectMemberService.getProjectMembers(p.projectId).pipe(
+        catchError(err => {
+          console.error(`Failed to load members for project ${p.projectId}`, err);
+          return of([] as ProjectMemberResponseDTO[]);
+        })
+      )
     );
 
-    Promise.all(memberPromises).then(memberArrays => {
-      // Convert to SafeProject with guaranteed members array and safe user data
-      this.projects = projects.map((project, index) => {
-        const members = (memberArrays[index] || []).map(member => {
-          // Ensure member has all required properties
-          const safeMember: ProjectMemberResponseDTO = {
+    forkJoin(membersObservables).subscribe({
+      next: (memberArrays) => {
+        this.projects = projects.map((project, idx) => {
+          const members = (memberArrays[idx] || []).map(member => ({
             ...member,
             user: this.ensureUserData(member.user, member.userId),
             role: member.role || ProjectRole.MEMBER,
             memberId: member.memberId || this.generateTempId()
-          };
-          return safeMember;
+          } as ProjectMemberResponseDTO));
+
+          return {
+            ...project,
+            members
+          } as SafeProject;
         });
 
-        return {
-          ...project,
-          members
-        } as SafeProject;
-      });
-
-      this.loading = false;
-      console.log('Projects with members loaded safely:', this.projects);
-    }).catch(error => {
-      console.error('Error loading project members:', error);
-      this.loading = false;
+        this.loading = false;
+      },
+      error: (err) => {
+        console.error('Error combining project members', err);
+        this.loading = false;
+      }
     });
   }
 
-  loadAllUsers(): void {
+  private loadAllUsers(): void {
     this.userService.getAllUsers().subscribe({
       next: (users) => {
-        this.allUsers = users;
+        this.allUsers = users || [];
       },
-      error: (error) => {
-        console.error('Error loading users:', error);
+      error: (err) => {
+        console.error('Error loading users', err);
       }
     });
-
-    // In your user-management.component.ts
-    console.log('Starting to load all users...');
-
-    // this.userService.getAllUsers().subscribe({
-    //   next: (users) => {
-    //     console.log('Users loaded successfully:', users);
-    //     console.log('Number of users:', users.length);
-    //     console.log('First user:', users[0]);
-    //     this.allUsers = users;
-    //   },
-    //   error: (error) => {
-    //     console.error('Error loading users:', error);
-    //     console.error('Error details:', error.error);
-    //     console.error('Error status:', error.status);
-    //   }
-    // });
-
   }
 
   createAddUserForm(): FormGroup {
@@ -215,11 +220,13 @@ export class UserManagementsComponent implements OnInit {
 
   // Role-based access control methods
   isAdmin(): boolean {
-    return this.currentUser?.role === 'ADMIN';
+    const r = this.currentUser?.role || '';
+    return r === 'ADMIN' || r === 'ROLE_ADMIN';
   }
 
   isManager(): boolean {
-    return this.currentUser?.role === 'MANAGER';
+    const r = this.currentUser?.role || '';
+    return r === 'MANAGER' || r === 'ROLE_MANAGER';
   }
 
   canManageUsers(): boolean {
@@ -227,24 +234,21 @@ export class UserManagementsComponent implements OnInit {
   }
 
   canEditProject(project: SafeProject): boolean {
-    if (this.isAdmin()) return true;
-
-    // Use userId instead of id
     const userMember = project.members.find(m => m.userId === this.currentUser?.userId);
-    return userMember?.role === ProjectRole.OWNER || userMember?.role === ProjectRole.ADMIN;
+    const roleStr = String(userMember?.role || '').toUpperCase();
+    return roleStr === String(ProjectRole.ADMIN) || roleStr === String(ProjectRole.MANAGER);
   }
 
-  // Modal methods
   openAddUserModal(project: SafeProject): void {
     this.selectedProject = project;
-    this.addUserForm.reset({ role: ProjectRole.MEMBER });
+    this.addUserForm.reset({ userId: '', role: ProjectRole.MEMBER });
     this.showAddUserModal = true;
   }
 
   openEditUserModal(project: SafeProject, member: ProjectMemberResponseDTO): void {
     this.selectedProject = project;
     this.selectedMember = member;
-    this.editUserForm.patchValue({ role: member.role });
+    this.editUserForm.reset({ role: member.role });
     this.showEditUserModal = true;
   }
 
@@ -255,257 +259,240 @@ export class UserManagementsComponent implements OnInit {
     this.selectedMember = null;
   }
 
-  // Form submissions
   onAddUserSubmit(): void {
-    if (this.addUserForm.valid && this.selectedProject) {
-      const formData = this.addUserForm.value;
+    if (!this.addUserForm.valid || !this.selectedProject) return;
 
-      this.projectMemberService.addMemberToProject(
-        this.selectedProject.projectId,
-        formData.userId,
-        formData.role
-      ).subscribe({
-        next: (newMember) => {
-          // Add the new member to the project
-          this.selectedProject!.members.push(newMember);
-          this.closeModals();
-          this.showNotification('success', 'User added to project', `${this.getUserDisplayName(newMember.user)} has been added as ${newMember.role}`);
-        },
-        error: (error) => {
-          console.error('Error adding user to project:', error);
-          this.showNotification('error', 'Failed to add user', error.error?.message || 'Please try again');
-        }
-      });
+    const value = this.addUserForm.value;
+    const userId = Number(value.userId);
+    const role: ProjectRole = (value.role as ProjectRole) || ProjectRole.MEMBER;
+
+    // Refresh user list if needed
+    this.refreshAllUsersIfNeeded();
+
+    // Defensive checks
+    if (!userId || !this.selectedProject?.projectId) {
+      this.showNotification('error', 'Invalid input', 'Please select a valid user and project.');
+      return;
     }
+
+    this.projectMemberService.addMemberToProject(this.selectedProject.projectId, userId, role).subscribe({
+      next: (newMember) => {
+        // Ensure user object is present
+        const safeMember = {
+          ...newMember,
+          user: this.ensureUserData(newMember.user, newMember.userId),
+          role: newMember.role || ProjectRole.MEMBER,
+          memberId: newMember.memberId || this.generateTempId()
+        } as ProjectMemberResponseDTO;
+
+        // Update local project members
+        const projIndex = this.projects.findIndex(p => p.projectId === this.selectedProject!.projectId);
+        if (projIndex !== -1) {
+          this.projects[projIndex].members.push(safeMember);
+        }
+
+        this.closeModals();
+        this.showNotification('success', 'User added', `${this.getUserDisplayName(safeMember.user)} added as ${safeMember.role}`);
+      },
+      error: (err) => {
+        console.error('Error adding member', err);
+        this.showNotification('error', 'Failed to add user', (err?.error?.message) || 'Please try again');
+      }
+    });
   }
 
   onEditUserSubmit(): void {
-    if (this.editUserForm.valid && this.selectedProject && this.selectedMember) {
-      const formData = this.editUserForm.value;
+    if (!this.editUserForm.valid || !this.selectedProject || !this.selectedMember) return;
 
-      this.projectMemberService.updateMemberRole(
-        this.selectedProject.projectId,
-        this.selectedMember.memberId,
-        formData.role
-      ).subscribe({
-        next: (updatedMember) => {
-          // Update the member in the project
-          const index = this.selectedProject!.members.findIndex(m => m.memberId === updatedMember.memberId);
-          if (index !== -1) {
-            this.selectedProject!.members[index] = updatedMember;
+    const value = this.editUserForm.value;
+    const newRole: ProjectRole = (value.role as ProjectRole) || this.selectedMember.role;
+
+    if (!this.selectedProject.projectId || !this.selectedMember.memberId) {
+      this.showNotification('error', 'Invalid input', 'Missing project or member information.');
+      return;
+    }
+
+    this.projectMemberService.updateMemberRole(this.selectedProject.projectId, this.selectedMember.memberId, newRole)
+      .subscribe({
+        next: (updated) => {
+          const projIndex = this.projects.findIndex(p => p.projectId === this.selectedProject!.projectId);
+          if (projIndex !== -1) {
+            const memIndex = this.projects[projIndex].members.findIndex(m => m.memberId === updated.memberId);
+            if (memIndex !== -1) {
+              this.projects[projIndex].members[memIndex] = {
+                ...updated,
+                user: this.ensureUserData(updated.user, updated.userId)
+              } as ProjectMemberResponseDTO;
+            }
           }
           this.closeModals();
-          this.showNotification('success', 'Role updated', `${this.getUserDisplayName(updatedMember.user)}'s role has been updated to ${updatedMember.role}`);
+          this.showNotification('success', 'Role updated', `${this.getUserDisplayName(updated.user)} role set to ${updated.role}`);
         },
-        error: (error) => {
-          console.error('Error updating project member:', error);
-          this.showNotification('error', 'Failed to update role', error.error?.message || 'Please try again');
+        error: (err) => {
+          console.error('Error updating member role', err);
+          this.showNotification('error', 'Failed to update role', (err?.error?.message) || 'Please try again');
         }
       });
-    }
   }
 
   removeUserFromProject(project: SafeProject, memberId: number): void {
-    if (confirm('Are you sure you want to remove this user from the project?')) {
-      this.projectMemberService.removeMemberFromProject(project.projectId, memberId).subscribe({
-        next: () => {
-          // Remove the member from the local array
-          project.members = project.members.filter(m => m.memberId !== memberId);
-          this.showNotification('success', 'User removed', 'User has been removed from the project');
-        },
-        error: (error) => {
-          console.error('Error removing user from project:', error);
-          this.showNotification('error', 'Failed to remove user', error.error?.message || 'Please try again');
+    if (!project || !memberId) return;
+    if (!confirm('Are you sure you want to remove this user from the project?')) return;
+
+    this.projectMemberService.removeMemberFromProject(project.projectId, memberId).subscribe({
+      next: () => {
+        // Remove from local state
+        const projIndex = this.projects.findIndex(p => p.projectId === project.projectId);
+        if (projIndex !== -1) {
+          this.projects[projIndex].members = this.projects[projIndex].members.filter(m => m.memberId !== memberId);
         }
-      });
-    }
+        this.showNotification('success', 'User removed', 'User has been removed from the project');
+      },
+      error: (err) => {
+        console.error('Error removing member', err);
+        this.showNotification('error', 'Failed to remove user', (err?.error?.message) || 'Please try again');
+      }
+    });
   }
 
-  getRoleBadgeClass(role: ProjectRole | undefined | null): string {
-    if (!role) {
-      return 'bg-gray-100 text-gray-800 border border-gray-200';
-    }
-
+  // UI helper methods
+  getRoleBadgeClass(role: ProjectRole): string {
+    if (!role) return 'bg-gray-100 text-gray-800 border border-gray-200';
     switch (role) {
-      case ProjectRole.OWNER:
-        return 'bg-purple-100 text-purple-800 border border-purple-200';
-      case ProjectRole.ADMIN:
-        return 'bg-blue-100 text-blue-800 border border-blue-200';
-      case ProjectRole.MEMBER:
-        return 'bg-green-100 text-green-800 border border-green-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border border-gray-200';
+      case ProjectRole.MANAGER: return 'bg-purple-100 text-purple-800 border border-purple-200';
+      case ProjectRole.ADMIN: return 'bg-blue-100 text-blue-800 border border-blue-200';
+      case ProjectRole.MEMBER: return 'bg-green-100 text-green-800 border border-green-200';
+      default: return 'bg-gray-100 text-gray-800 border border-gray-200';
     }
   }
 
-  // Filter methods
+  getRoleDisplay(role: ProjectRole | undefined | null): string {
+    if (!role) return 'UNKNOWN';
+
+    const roleString = role.toString();
+    const displayMap: { [key: string]: string } = {
+      'MANAGER': 'Manager',
+      'MGR': 'Manager',
+      'ADMIN': 'Administrator',
+      'ADM': 'Administrator',
+      'MEMBER': 'Member',
+      'MEM': 'Member'
+    };
+
+    return displayMap[roleString] || roleString;
+  }
+
   get filteredProjects(): SafeProject[] {
+    const term = this.searchTerm?.toLowerCase() || '';
     return this.projects.filter(project => {
-      const matchesSearch = project.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        project.description.toLowerCase().includes(this.searchTerm.toLowerCase());
+      const matchesSearch = (project.name || '').toLowerCase().includes(term) ||
+        (project.description || '').toLowerCase().includes(term);
 
       if (this.roleFilter) {
-        const hasRole = project.members.some(member =>
-          member.role === this.roleFilter
-        );
-        return matchesSearch && hasRole;
+        return matchesSearch && project.members.some(m => (m.role || '').toString() === this.roleFilter);
       }
-
       return matchesSearch;
     });
   }
 
-  // Update the template methods to handle undefined
-  getMemberCount(project: SafeProject): number {
-    return project.members.length;
+  getAvailableUsers(project: SafeProject | null): User[] {
+    if (!project) return this.allUsers;
+
+    const existingUserIds = new Set(project.members.map(m => m.userId));
+    return this.allUsers.filter(user => !existingUserIds.has(user.userId));
   }
 
-  // Notification system
+  getMemberCount(project: SafeProject): number {
+    return project.members?.length || 0;
+  }
+
   showNotification(type: 'success' | 'error', title: string, message: string): void {
-    // Implement your notification logic here
+    // Replace with your toast/snackbar implementation
     console.log(`${type.toUpperCase()}: ${title} - ${message}`);
   }
 
-
   getEmail(user: User | undefined | null): string {
-    if (!user) {
-      return 'Email not available';
-    }
+    if (!user) return 'Email not available';
     return user.email || 'No email';
   }
 
-  // Safe method for role display
-  getRoleDisplay(role: ProjectRole | undefined | null): string {
-    if (!role) {
-      return 'UNKNOWN';
-    }
-    return role;
-  }
-
-  // Check if member is editable (has required data)
   isMemberEditable(member: ProjectMemberResponseDTO): boolean {
     return !!member && !!member.user;
   }
 
-  // Enhanced getUserDisplayName with more safety
   getUserDisplayName(user: User | undefined | null): string {
-    if (!user) {
-      return 'Unknown User';
-    }
-
-    // Check if firstName and lastName exist
-    const firstName = user.firstName || '';
-    const lastName = user.lastName || '';
-
-    const fullName = `${firstName} ${lastName}`.trim();
-
-    // If no name available, use email or a fallback
-    if (!fullName) {
-      return user.email || 'Unnamed User';
-    }
-
-    return fullName;
+    if (!user) return 'Unknown User';
+    const name = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+    return name || user.email || 'Unnamed User';
   }
 
-  // Enhanced getUserInitials with more safety
   getUserInitials(user: User | undefined | null): string {
-    if (!user) {
-      return '?';
-    }
-
-    const firstInitial = user.firstName?.charAt(0) || '';
-    const lastInitial = user.lastName?.charAt(0) || '';
-
-    const initials = `${firstInitial}${lastInitial}`.toUpperCase();
-
-    // If no initials from names, use first letter of email
-    if (!initials && user.email) {
-      return user.email.charAt(0).toUpperCase();
-    }
-
-    return initials || 'U';
+    if (!user) return '?';
+    const first = user.firstName?.charAt(0) || '';
+    const last = user.lastName?.charAt(0) || '';
+    const initials = (first + last).toUpperCase();
+    return initials || (user.email ? user.email.charAt(0).toUpperCase() : 'U');
   }
 
-  // Ensure user data is complete
+  canRemoveUser(member: ProjectMemberResponseDTO): boolean {
+    if (!member || !member.user) return false;
+    return member.userId !== this.currentUser?.userId;
+  }
+
+  // Private helper methods
   private ensureUserData(user: any, userId: number): User {
-    if (!user) {
-      return this.createFallbackUser(userId);
+    // If we already have a proper user object, return it
+    if (user && user.userId && (user.firstName || user.email)) {
+      return user as User;
     }
 
-    // Ensure all required user properties exist
-    return {
-      userId: user.userId || userId,
-      firstName: user.firstName || 'Unknown',
-      lastName: user.lastName || 'User',
-      email: user.email || `user${userId}@unknown.com`,
-      role: user.role || 'USER',
-      department: user.department,
-      isActive: user.isActive !== undefined ? user.isActive : false,
-      lastLogin: user.lastLogin,
-      createdAt: user.createdAt || new Date()
-    };
+    // Try to find the user in allUsers
+    if (this.allUsers && this.allUsers.length > 0) {
+      const foundUser = this.allUsers.find(u => u.userId == userId);
+      if (foundUser) {
+        return foundUser;
+      }
+    }
+
+    // If we have partial user data, use it
+    if (user && typeof user === 'object') {
+      return {
+        userId: user.userId || userId,
+        firstName: user.firstName || 'Unknown',
+        lastName: user.lastName || 'User',
+        email: user.email || `user${userId}@unknown.com`,
+        role: user.role || 'USER',
+        department: user.department,
+        isActive: user.isActive !== undefined ? user.isActive : true,
+        lastLogin: user.lastLogin,
+        createdAt: user.createdAt ? new Date(user.createdAt) : new Date()
+      } as User;
+    }
+
+    // Final fallback
+    return this.createFallbackUser(userId);
   }
 
-  // Enhanced fallback user creation
+  private refreshAllUsersIfNeeded(): void {
+    // If allUsers is empty, try to load it again
+    if (!this.allUsers || this.allUsers.length === 0) {
+      this.loadAllUsers();
+    }
+  }
+
   private createFallbackUser(userId: number): User {
     return {
-      userId: userId,
+      userId,
       firstName: 'Unknown',
       lastName: 'User',
       email: `user${userId}@unknown.com`,
       role: 'USER',
       isActive: false,
       createdAt: new Date()
-    };
+    } as User;
   }
 
-  // Generate temporary ID for members without one
   private generateTempId(): number {
-    return Math.floor(Math.random() * 1000000) * -1; // Negative to indicate temporary
+    return Math.floor(Math.random() * 1000000) * -1;
   }
-
-  // Enhanced canRemoveUser method
-  canRemoveUser(member: ProjectMemberResponseDTO): boolean {
-    if (!member || !member.user) {
-      return false;
-    }
-    return member.userId !== this.currentUser?.userId;
-  }
-
-  // Debug method to log member data
-  logMemberData(member: ProjectMemberResponseDTO): void {
-    console.log('Member data:', {
-      memberId: member.memberId,
-      userId: member.userId,
-      user: member.user,
-      role: member.role,
-      hasUser: !!member.user,
-      userProperties: member.user ? Object.keys(member.user) : 'No user data'
-    });
-  }
-
-  // Add this method to debug the actual data structure
-  debugProjectData(): void {
-    console.log('=== DEBUG PROJECT DATA ===');
-    this.projects.forEach((project, projectIndex) => {
-      console.log(`Project ${projectIndex}:`, project.name);
-      project.members.forEach((member, memberIndex) => {
-        console.log(`  Member ${memberIndex}:`, {
-          memberId: member.memberId,
-          userId: member.userId,
-          hasUser: !!member.user,
-          userType: typeof member.user,
-          userKeys: member.user ? Object.keys(member.user) : 'NO USER'
-        });
-
-        // Check if user has email property
-        if (member.user) {
-          console.log('    User email exists:', 'email' in member.user);
-          console.log('    User email value:', member.user.email);
-        }
-      });
-    });
-    console.log('=== END DEBUG ===');
-  }
-
 }

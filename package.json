@@ -20,6 +20,7 @@
     "@angular/platform-browser-dynamic": "^15.2.0",
     "@angular/router": "^15.2.0",
     "@auth0/angular-jwt": "^5.2.0",
+    "frappe-gantt": "^1.0.4",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.12.0"
@@ -28,6 +29,7 @@
     "@angular-devkit/build-angular": "^15.2.11",
     "@angular/cli": "~15.2.11",
     "@angular/compiler-cli": "^15.2.0",
+    "@types/frappe-gantt": "^0.9.0",
     "@types/jasmine": "~4.3.0",
     "autoprefixer": "^10.4.21",
     "jasmine-core": "~4.5.0",

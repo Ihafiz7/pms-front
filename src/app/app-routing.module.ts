@@ -6,6 +6,7 @@ import { ProjectBoardComponent } from './components/project-board/project-board.
 import { KanbanBoardComponent } from './components/kanban-board/kanban-board.component';
 // import { TaskComponent } from './components/task/task.component';
 import { UserManagementsComponent } from './components/user-managements/user-managements.component';
+import { GanttChartComponent } from './components/gantt-chart/gantt-chart.component';
 
 const routes: Routes = [
   { path: '',redirectTo: '/login', pathMatch: 'full'},
@@ -15,6 +16,8 @@ const routes: Routes = [
   { path: 'kanban/:id', component:KanbanBoardComponent},
   // { path: 'task', component:TaskComponent},
   { path: 'users', component: UserManagementsComponent},
+  { path: 'gantt', component: GanttChartComponent},
+
   { path: '**',redirectTo: '/login'}
 
 ];

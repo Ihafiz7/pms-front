@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { Subject, takeUntil, catchError, of, forkJoin } from 'rxjs';
 import { ColumnResponse, Task, User, TaskRequest, TaskPriority, ColumnRequest } from 'src/app/models/models';
 import { KanbanColumnService } from 'src/app/services/kanban-column.service';
+import { ProjectMemberService } from 'src/app/services/project-member.service';
 import { TaskService } from 'src/app/services/task.service';
 import { UserService } from 'src/app/services/user.service';
 
@@ -16,6 +17,7 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
   columns: ColumnResponse[] = [];
   tasks: Record<number, Task[]> = {};
   users: User[] = [];
+  allUsers: User[] = [];
   currentProjectId!: number;
   isSidebarOpen = false;
 
@@ -23,18 +25,27 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
   isDragging = false;
   connectedColumnIds: string[] = [];
 
-  // modal control
+  // Modal control
   modalVisible = false;
   modalMode: 'createTask' | 'editTask' | 'createColumn' | 'editColumn' | null = null;
   modalPayload: { columnId?: number; task?: Task; column?: ColumnResponse } | null = null;
 
+  // Notification
+  notification = {
+    show: false,
+    message: '',
+    type: 'info' as 'success' | 'error' | 'info'
+  };
+
   private destroy$ = new Subject<void>();
+  private notificationTimeout: any;
 
   constructor(
     private taskService: TaskService,
     private columnService: KanbanColumnService,
     private userService: UserService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private projectMemberService: ProjectMemberService
   ) { }
 
   ngOnInit(): void {
@@ -51,16 +62,13 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    if (this.notificationTimeout) {
+      clearTimeout(this.notificationTimeout);
+    }
   }
 
-  toggleSidebar(): void {
-    this.isSidebarOpen = !this.isSidebarOpen;
-  }
-
-  // Loading
+  // Loading methods
   loadBoardData(): void {
-    console.log("------------------------");
-    
     this.loading = true;
     this.columnService.getColumnsByProject(this.currentProjectId).pipe(takeUntil(this.destroy$)).subscribe({
       next: (cols) => {
@@ -76,45 +84,40 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
     });
   }
 
-  // loadUsers(): void {
-  //   this.userService.getAllUsers().pipe(takeUntil(this.destroy$)).subscribe({
-  //     next: (users) => {
-  //       this.users = users;
-  //       console.log('Loaded users:', this.users.length);
-  //     },
-  //     error: (err) => {
-  //       console.error('Error loading users', err);
-  //       this.users = [];
-  //       this.showNotification('Error loading users', 'error');
-  //     }
-  //   });
-  // }
-
   loadUsers(): void {
     if (!this.currentProjectId) {
-      console.warn('No project ID available for loading users');
       this.users = [];
       return;
     }
 
-    this.userService.getUsersByProject(this.currentProjectId).pipe(
+    this.userService.getAllUsers().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (allUsers) => {
+        this.allUsers = allUsers;
+        this.loadProjectMembers();
+      },
+      error: (err) => {
+        console.error('Error loading all users', err);
+        this.users = [];
+      }
+    });
+  }
+
+  private loadProjectMembers(): void {
+    this.projectMemberService.getProjectMembers(this.currentProjectId).pipe(
       takeUntil(this.destroy$)
     ).subscribe({
-      next: (users) => {
-        this.users = users;
-        console.log(`Loaded ${users.length} users for project ${this.currentProjectId}:`, users);
+      next: (projectMembers) => {
+        this.users = projectMembers
+          .map(member => this.allUsers.find(u => u.userId === member.userId))
+          .filter(user => !!user) as User[];
 
-        // If no users found, show a warning
-        if (users.length === 0) {
-          console.warn('No users found for this project. Tasks cannot be assigned.');
+        if (this.users.length === 0) {
           this.showNotification('No users found in this project. Please add users to the project first.', 'error');
         }
       },
       error: (err) => {
-        console.error('Error loading users for project', err);
+        console.error('Error loading project members', err);
         this.users = [];
-        const errorMessage = this.extractErrorMessage(err);
-        this.showNotification(`Error loading project users: ${errorMessage}`, 'error');
       }
     });
   }
@@ -150,7 +153,7 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
     });
   }
 
-  //Drag & Drop
+  // Drag & Drop methods
   onTaskDrop(event: CdkDragDrop<Task[]>, targetColumnId: number): void {
     this.isDragging = false;
 
@@ -188,7 +191,7 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
   }
 
   private updateTaskOrder(tasks: Task[], columnId: number): void {
-    if (!tasks || !tasks.length) return;
+    if (!tasks?.length) return;
 
     const updates = tasks.map((t, idx) =>
       this.taskService.reorderTaskInColumn(t.taskId, idx).pipe(
@@ -228,9 +231,8 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
     ).subscribe();
   }
 
-  //Modal Handlers 
+  // Modal methods
   openCreateTask(columnId: number): void {
-    console.log('Opening create task for column:', columnId);
     this.modalMode = 'createTask';
     this.modalPayload = { columnId };
     this.modalVisible = true;
@@ -261,8 +263,6 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
   }
 
   onModalSave(result: { type: 'task' | 'column'; action: 'create' | 'update'; payload: any }): void {
-    console.log('Modal save result:', result);
-
     this.loading = true;
 
     if (result.type === 'task') {
@@ -273,30 +273,18 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
   }
 
   private handleTaskOperation(result: { action: 'create' | 'update'; payload: any }): void {
-    // Validate required fields
     if (!result.payload.title?.trim()) {
       this.showNotification('Task title is required', 'error');
       this.loading = false;
       return;
     }
 
-    // Validate users are loaded
     if (this.users.length === 0) {
       this.showNotification('No users available. Please ensure users are loaded.', 'error');
       this.loading = false;
       return;
     }
 
-    // Use provided assignee or default to first user
-    const assigneeId = result.payload.assigneeId || this.users[0]?.userId;
-
-    if (!assigneeId) {
-      this.showNotification('No valid assignee selected', 'error');
-      this.loading = false;
-      return;
-    }
-
-    // Get the target column ID - CRITICAL FIX
     const columnId = result.payload.columnId;
     if (!columnId) {
       this.showNotification('Column ID is required', 'error');
@@ -304,12 +292,11 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Format date properly for backend (YYYY-MM-DD)
+    const assigneeId = result.payload.assigneeId || this.users[0]?.userId;
     const dueDate = result.payload.dueDate
       ? new Date(result.payload.dueDate).toISOString().split('T')[0]
       : new Date().toISOString().split('T')[0];
 
-    // Build complete TaskRequest matching backend expectations
     const taskRequest: TaskRequest = {
       title: result.payload.title.trim(),
       description: result.payload.description?.trim() || '',
@@ -326,8 +313,6 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
       displayOrder: result.payload.displayOrder || 0
     };
 
-    console.log('Sending task request:', taskRequest);
-
     if (result.action === 'create') {
       this.createTask(taskRequest);
     } else {
@@ -336,11 +321,8 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
   }
 
   private createTask(taskRequest: TaskRequest): void {
-    this.taskService.createTask(taskRequest).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
+    this.taskService.createTask(taskRequest).pipe(takeUntil(this.destroy$)).subscribe({
       next: (createdTask: Task) => {
-        console.log('Task created successfully:', createdTask);
         this.createTaskLocal(createdTask);
         this.loading = false;
         this.closeModal();
@@ -349,18 +331,14 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
       error: (err) => {
         console.error('Error creating task', err);
         this.loading = false;
-        const errorMessage = this.extractErrorMessage(err);
-        this.showNotification(`Error creating task: ${errorMessage}`, 'error');
+        this.showNotification(`Error creating task: ${this.extractErrorMessage(err)}`, 'error');
       }
     });
   }
 
   private updateTask(taskId: number, taskRequest: TaskRequest): void {
-    this.taskService.updateTask(taskId, taskRequest).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
+    this.taskService.updateTask(taskId, taskRequest).pipe(takeUntil(this.destroy$)).subscribe({
       next: (updatedTask: Task) => {
-        console.log('Task updated successfully:', updatedTask);
         this.updateTaskLocal(updatedTask);
         this.loading = false;
         this.closeModal();
@@ -369,73 +347,13 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
       error: (err) => {
         console.error('Error updating task', err);
         this.loading = false;
-        const errorMessage = this.extractErrorMessage(err);
-        this.showNotification(`Error updating task: ${errorMessage}`, 'error');
+        this.showNotification(`Error updating task: ${this.extractErrorMessage(err)}`, 'error');
       }
     });
   }
 
-  // private handleColumnOperation(result: { action: 'create' | 'update'; payload: any }): void {
-  //   if (result.action === 'create') {
-  //     if (!result.payload.name?.trim()) {
-  //       this.showNotification('Column name is required', 'error');
-  //       this.loading = false;
-  //       return;
-  //     }
-
-  //     const columnRequest: ColumnRequest = {
-  //       name: result.payload.name.trim(),
-  //       color: result.payload.color || '#3b82f6',
-  //       wipLimit: result.payload.wipLimit || null,
-  //       projectId: this.currentProjectId,
-  //       isDefault: false
-  //     };
-
-  //     this.columnService.createColumn(columnRequest).pipe(
-  //       takeUntil(this.destroy$)
-  //     ).subscribe({
-  //       next: (createdColumn) => {
-  //         this.createColumnLocal(createdColumn);
-  //         this.loading = false;
-  //         this.closeModal();
-  //         this.showNotification('Column created successfully', 'success');
-  //       },
-  //       error: (err) => {
-  //         console.error('Error creating column', err);
-  //         this.loading = false;
-  //         const errorMessage = this.extractErrorMessage(err);
-  //         this.showNotification(`Error creating column: ${errorMessage}`, 'error');
-  //       }
-  //     });
-  //   } else {
-  //     if (!result.payload.columnId) {
-  //       this.showNotification('Column ID is required for update', 'error');
-  //       this.loading = false;
-  //       return;
-  //     }
-
-  //     this.columnService.updateColumn(result.payload.columnId, result.payload).pipe(
-  //       takeUntil(this.destroy$)
-  //     ).subscribe({
-  //       next: (updatedColumn) => {
-  //         this.updateColumnLocal(updatedColumn);
-  //         this.loading = false;
-  //         this.closeModal();
-  //         this.showNotification('Column updated successfully', 'success');
-  //       },
-  //       error: (err) => {
-  //         console.error('Error updating column', err);
-  //         this.loading = false;
-  //         const errorMessage = this.extractErrorMessage(err);
-  //         this.showNotification(`Error updating column: ${errorMessage}`, 'error');
-  //       }
-  //     });
-  //   }
-  // }
-
   private handleColumnOperation(result: { action: 'create' | 'update'; payload: any }): void {
     if (result.action === 'create') {
-      // Enhanced validation
       const name = result.payload.name?.trim();
       if (!name) {
         this.showNotification('Column name is required', 'error');
@@ -443,25 +361,25 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
         return;
       }
 
-      if (name.length === 0) {
-        this.showNotification('Column name cannot be empty', 'error');
+      const existingColumn = this.columns.find(col =>
+        col.name.toLowerCase() === name.toLowerCase()
+      );
+      if (existingColumn) {
+        this.showNotification('A column with this name already exists', 'error');
         this.loading = false;
         return;
       }
+
       const columnRequest: ColumnRequest = {
         name: name,
         color: result.payload.color || '#3b82f6',
         projectId: this.currentProjectId,
-        displayOrder: 0, // Backend will calculate this
+        displayOrder: 0,
         isDefault: false,
         wipLimit: result.payload.wipLimit
       };
 
-      console.log('Creating column with request:', columnRequest);
-
-      this.columnService.createColumn(columnRequest).pipe(
-        takeUntil(this.destroy$)
-      ).subscribe({
+      this.columnService.createColumn(columnRequest).pipe(takeUntil(this.destroy$)).subscribe({
         next: (createdColumn) => {
           this.createColumnLocal(createdColumn);
           this.loading = false;
@@ -471,12 +389,10 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
         error: (err) => {
           console.error('Error creating column', err);
           this.loading = false;
-          const errorMessage = this.extractErrorMessage(err);
-          this.showNotification(`Error creating column: ${errorMessage}`, 'error');
+          this.showNotification(`Error creating column: ${this.extractErrorMessage(err)}`, 'error');
         }
       });
     } else {
-      // UPDATE COLUMN - wipLimit is allowed here
       if (!result.payload.columnId) {
         this.showNotification('Column ID is required for update', 'error');
         this.loading = false;
@@ -484,20 +400,11 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
       }
 
       const columnId = Number(result.payload.columnId);
-      if (isNaN(columnId)) {
-        this.showNotification('Invalid column ID', 'error');
-        this.loading = false;
-        return;
-      }
-
-      // For update, include wipLimit since backend updateColumn accepts it
       const updateData = {
         name: result.payload.name?.trim(),
         color: result.payload.color,
         wipLimit: result.payload.wipLimit || null
       };
-
-      console.log('Updating column with ID:', columnId, 'in project:', this.currentProjectId, 'Data:', updateData);
 
       this.columnService.updateColumnWithProject(this.currentProjectId, columnId, updateData).pipe(
         takeUntil(this.destroy$)
@@ -511,8 +418,7 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
         error: (err) => {
           console.error('Error updating column', err);
           this.loading = false;
-          const errorMessage = this.extractErrorMessage(err);
-          this.showNotification(`Error updating column: ${errorMessage}`, 'error');
+          this.showNotification(`Error updating column: ${this.extractErrorMessage(err)}`, 'error');
         }
       });
     }
@@ -523,10 +429,11 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
       this.onDeleteTask(result.id, result.columnId!);
     } else {
       this.onDeleteColumn(result.id);
+      this.closeModal();
     }
   }
 
-  //CRUD Operations 
+  // CRUD Operations
   createTaskLocal(task: Task): void {
     const colId = task.columnId;
     if (!this.tasks[colId]) this.tasks[colId] = [];
@@ -576,8 +483,7 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
       },
       error: err => {
         console.error('Error deleting task', err);
-        const errorMessage = this.extractErrorMessage(err);
-        this.showNotification(`Error deleting task: ${errorMessage}`, 'error');
+        this.showNotification(`Error deleting task: ${this.extractErrorMessage(err)}`, 'error');
         this.loadBoardData();
       }
     });
@@ -602,15 +508,12 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
         this.executeColumnDeletion(columnId, targetColumnId);
       }
     }).catch(() => {
-      console.log('Column deletion cancelled');
+      // User cancelled deletion
     });
   }
 
-
   private executeColumnDeletion(columnId: number, targetColumnId: number): void {
     this.loading = true;
-
-    console.log('Executing deletion - Project:', this.currentProjectId, 'Column:', columnId, 'Target:', targetColumnId);
 
     this.columnService.deleteColumn(this.currentProjectId, columnId, targetColumnId)
       .pipe(takeUntil(this.destroy$))
@@ -624,8 +527,7 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
         error: (err) => {
           console.error('Error deleting column', err);
           this.loading = false;
-          const errorMessage = this.extractErrorMessage(err);
-          this.showNotification(`Failed to delete column: ${errorMessage}`, 'error');
+          this.showNotification(`Failed to delete column: ${this.extractErrorMessage(err)}`, 'error');
           this.loadBoardData();
         }
       });
@@ -655,7 +557,7 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
     });
   }
 
-  /* ---------- Utilities ---------- */
+  // Utility methods
   private refreshTaskInBoard(updatedTask: Task): void {
     Object.keys(this.tasks).forEach(columnId => {
       const columnIdNum = Number(columnId);
@@ -713,12 +615,34 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
   }
 
   getAssigneeName(task: Task): string {
-    if (task.assigneeName) {
+    if (task.assigneeName && task.assigneeName !== 'Unknown User' && task.assigneeName !== 'User') {
       return task.assigneeName;
     }
 
-    const user = this.users.find(u => u.userId === task.assigneeId);
-    return user ? `${user.firstName} ${user.lastName}` : 'Unknown User';
+    if (task.assigneeId) {
+      const user = this.users.find(u => u.userId === task.assigneeId);
+      if (user) {
+        return this.formatUserName(user);
+      }
+    }
+
+    return 'Unassigned';
+  }
+
+  private formatUserName(user: User): string {
+    if (user.firstName && user.lastName) {
+      return `${user.firstName} ${user.lastName}`;
+    }
+    if (user.firstName) {
+      return user.firstName;
+    }
+    if (user.lastName) {
+      return user.lastName;
+    }
+    if (user.email) {
+      return user.email.split('@')[0];
+    }
+    return `User #${user.userId}`;
   }
 
   getColumnName(task: Task): string {
@@ -730,15 +654,12 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
     return column ? column.name : 'Unknown Column';
   }
 
-  /* ---------- Notifications ---------- */
-  notification = {
-    show: false,
-    message: '',
-    type: 'info' as 'success' | 'error' | 'info'
-  };
-
   getTaskProgress(task: Task): number {
     return task.progressPercentage ?? 0;
+  }
+
+  toggleSidebar(): void {
+    this.isSidebarOpen = !this.isSidebarOpen;
   }
 
   private showNotification(message: string, type: 'success' | 'error' | 'info' = 'info'): void {
@@ -748,7 +669,11 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
       type
     };
 
-    setTimeout(() => {
+    if (this.notificationTimeout) {
+      clearTimeout(this.notificationTimeout);
+    }
+
+    this.notificationTimeout = setTimeout(() => {
       this.notification.show = false;
     }, 5000);
   }

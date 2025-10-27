@@ -226,7 +226,6 @@ private formatDateForBackend(dateString: string): string {
       status: ProjectStatus.PLANNING
     };
   }
-
   // Statistics
   getTotalProjects(): number {
     return this.projects.length;
