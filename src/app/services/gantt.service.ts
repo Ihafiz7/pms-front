@@ -12,6 +12,8 @@ private apiUrl = 'http://localhost:8080/pms';
   constructor(private http: HttpClient) { }
 
   getGanttData(projectId: number): Observable<GanttData> {
+    console.log(`Url-----${this.apiUrl}/projects/${projectId}/gantt`);
+    
     return this.http.get<GanttData>(`${this.apiUrl}/projects/${projectId}/gantt`)
       .pipe(
         catchError(this.handleError)

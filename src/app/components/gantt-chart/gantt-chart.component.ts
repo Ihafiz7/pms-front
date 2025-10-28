@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ViewChild, ElementRef } from '@angular/core';
 import { GanttData, GanttTask } from 'src/app/models/gantt.model';
 import { GanttService } from 'src/app/services/gantt.service';
 
@@ -19,39 +19,22 @@ interface GanttChartTask {
   templateUrl: './gantt-chart.component.html',
   styleUrls: ['./gantt-chart.component.scss']
 })
-export class GanttChartComponent implements OnInit, AfterViewInit, OnChanges {
-  @Input() projectId: number = 1;
+export class GanttChartComponent implements OnInit, OnChanges {
+  @Input() projectId: number = 3;
   @Input() viewMode: string = 'Month';
   @Output() taskSelected = new EventEmitter<GanttTask>();
-  
   @ViewChild('ganttContainer') ganttContainer!: ElementRef;
 
   ganttData: GanttData | null = null;
-  loading: boolean = false;
-  error: string = '';
-  
-  private gantt: any;
-  private isInitialized: boolean = false;
+  loading = false;
+  error = '';
+  gantt: any;
+  viewModes = ['Quarter Day', 'Half Day', 'Day', 'Week', 'Month'];
 
-  // Available view modes
-  viewModes = [
-    { value: 'Quarter Day', label: 'Quarter Day' },
-    { value: 'Half Day', label: 'Half Day' },
-    { value: 'Day', label: 'Day' },
-    { value: 'Week', label: 'Week' },
-    { value: 'Month', label: 'Month' }
-  ];
-
-  constructor(private ganttService: GanttService) {}
+  constructor(private ganttService: GanttService) { }
 
   ngOnInit(): void {
     this.loadGanttData();
-  }
-
-  ngAfterViewInit(): void {
-    setTimeout(() => {
-      this.initGanttChart();
-    }, 100);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -66,42 +49,59 @@ export class GanttChartComponent implements OnInit, AfterViewInit, OnChanges {
   loadGanttData(): void {
     this.loading = true;
     this.error = '';
-    
     this.ganttService.getGanttData(this.projectId).subscribe({
       next: (data) => {
         this.ganttData = data;
+
+        // Ensure at least one placeholder task if no tasks
+        if (!this.ganttData.tasks || this.ganttData.tasks.length === 0) {
+          const today = new Date();
+          const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+          this.ganttData.tasks = [{
+            taskId: Date.now(),
+            title: 'No Tasks Yet',
+            startDate: this.formatDate(today),
+            endDate: this.formatDate(nextWeek),
+            progress: 0,
+            status: 'To Do',
+            dependencies: '',
+            assigneeName: 'Unassigned'
+          }];
+        }
+
         this.loading = false;
-        this.refreshGanttChart();
+        this.renderGanttChart();
       },
       error: (error) => {
+        console.error('Error loading Gantt data:', error);
         this.error = 'Failed to load Gantt data';
         this.loading = false;
-        console.error('Error loading Gantt data:', error);
       }
     });
   }
 
-  private initGanttChart(): void {
-    if (!this.ganttContainer?.nativeElement || this.isInitialized) {
+  private renderGanttChart(): void {
+    if (!this.ganttContainer?.nativeElement || !this.ganttData) return;
+
+    const tasks = this.transformToGanttTasks(this.ganttData.tasks);
+    if (!tasks.length) {
+      this.ganttContainer.nativeElement.innerHTML = '<p>No tasks available</p>';
       return;
     }
 
-    const tasks = this.transformToGanttTasks(this.ganttData?.tasks || []);
-    
+    this.ganttContainer.nativeElement.innerHTML = '';
     try {
-      // Use type assertion to avoid TypeScript errors
       this.gantt = new (Gantt as any)(
-        this.ganttContainer.nativeElement, 
+        this.ganttContainer.nativeElement,
         tasks,
         {
           header_height: 50,
           column_width: 30,
-          step: 24,
-          view_modes: ['Quarter Day', 'Half Day', 'Day', 'Week', 'Month'],
-          bar_height: 20,
+          view_modes: this.viewModes,
+          bar_height: 22,
           bar_corner_radius: 3,
           arrow_curve: 5,
-          padding: 18,
+          padding: 20,
           view_mode: this.viewMode,
           date_format: 'YYYY-MM-DD',
           custom_popup_html: this.customPopupHtml.bind(this),
@@ -110,32 +110,36 @@ export class GanttChartComponent implements OnInit, AfterViewInit, OnChanges {
           on_progress_change: (task: any, progress: number) => this.onProgressChange(task, progress),
         }
       );
-
-      this.isInitialized = true;
     } catch (error) {
       console.error('Error initializing Gantt chart:', error);
+      this.error = 'Failed to initialize chart';
     }
   }
 
-  private refreshGanttChart(): void {
-    if (this.gantt && this.ganttData) {
-      const tasks = this.transformToGanttTasks(this.ganttData.tasks);
-      this.gantt.refresh(tasks);
-    } else if (!this.isInitialized) {
-      this.initGanttChart();
-    }
-  }
+  private transformToGanttTasks(tasks: any[]): GanttChartTask[] {
+    return tasks
+      .filter(t => t.startDate)
+      .map((t, index) => {
+        let start = new Date(t.startDate);
+        let end = t.endDate ? new Date(t.endDate) : new Date(start.getTime());
 
-  private transformToGanttTasks(tasks: GanttTask[]): GanttChartTask[] {
-    return tasks.map(task => ({
-      id: task.taskId.toString(),
-      name: task.title,
-      start: task.startDate,
-      end: task.endDate,
-      progress: task.progress,
-      dependencies: task.dependencies || '',
-      custom_class: this.getStatusClass(task.status)
-    }));
+        if (end <= start) {
+          end = new Date(start.getTime());
+          end.setDate(end.getDate() + 1); // minimum 1-day duration
+        }
+
+        const progress = typeof t.progress === 'number' ? t.progress : 0;
+
+        return {
+          id: t.taskId ? t.taskId.toString() : `task-${index}`,
+          name: t.title || `Task ${index + 1}`,
+          start: start.toISOString().split('T')[0],
+          end: end.toISOString().split('T')[0],
+          progress: progress,
+          dependencies: t.dependencies && t.dependencies !== 'string' ? t.dependencies : '',
+          custom_class: this.getStatusClass(t.status),
+        };
+      });
   }
 
   private getStatusClass(status: string): string {
@@ -144,116 +148,88 @@ export class GanttChartComponent implements OnInit, AfterViewInit, OnChanges {
       'Review': 'status-review',
       'In Progress': 'status-in-progress',
       'To Do': 'status-todo',
-      'Blocked': 'status-blocked'
+      'Blocked': 'status-blocked',
     };
     return statusMap[status] || 'status-todo';
   }
 
   private customPopupHtml(task: any): string {
-    const originalTask = this.ganttData?.tasks.find(t => t.taskId.toString() === task.id);
+    const original = this.ganttData?.tasks.find(t => t.taskId.toString() === task.id);
     return `
-      <div class="bg-white rounded-lg shadow-lg border border-gray-200 p-4 min-w-64">
-        <h3 class="font-semibold text-lg text-gray-800 mb-2 border-b border-gray-200 pb-2">${task.name}</h3>
-        <div class="space-y-2 mb-3">
-          <div class="flex justify-between">
-            <span class="text-gray-600">Start:</span>
-            <span class="font-medium">${task.start}</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-gray-600">End:</span>
-            <span class="font-medium">${task.end}</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-gray-600">Progress:</span>
-            <span class="font-medium">${task.progress}%</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-gray-600">Status:</span>
-            <span class="font-medium">${originalTask?.status || 'Unknown'}</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-gray-600">Assignee:</span>
-            <span class="font-medium">${originalTask?.assigneeName || 'Unassigned'}</span>
-          </div>
-        </div>
+      <div class="popup-card">
+        <h3>${task.name}</h3>
+        <p><strong>Start:</strong> ${task.start}</p>
+        <p><strong>End:</strong> ${task.end}</p>
+        <p><strong>Progress:</strong> ${task.progress}%</p>
+        <p><strong>Status:</strong> ${original?.status || 'Unknown'}</p>
+        <p><strong>Assignee:</strong> ${original?.assigneeName || 'Unassigned'}</p>
       </div>
     `;
   }
 
   private onTaskClick(task: any): void {
-    const originalTask = this.ganttData?.tasks.find(t => t.taskId.toString() === task.id);
-    if (originalTask) {
-      this.taskSelected.emit(originalTask);
-    }
+    const original = this.ganttData?.tasks.find(t => t.taskId.toString() === task.id);
+    if (original) this.taskSelected.emit(original);
   }
 
   private onDateChange(task: any, start: Date, end: Date): void {
-    // Convert Date objects to string format YYYY-MM-DD
-    const startStr = this.formatDate(start);
-    const endStr = this.formatDate(end);
-    
     const taskId = parseInt(task.id, 10);
     this.ganttService.updateTask(taskId, {
-      startDate: startStr,
-      endDate: endStr
+      startDate: this.formatDate(start),
+      endDate: this.formatDate(end),
     }).subscribe({
-      next: () => {
-        console.log('Task dates updated successfully');
-      },
-      error: (error) => {
-        console.error('Error updating task dates:', error);
-        this.loadGanttData(); // Reload on error to reset
-      }
+      next: () => console.log('Task dates updated'),
+      error: () => this.loadGanttData(),
     });
   }
 
   private onProgressChange(task: any, progress: number): void {
     const taskId = parseInt(task.id, 10);
-    this.ganttService.updateTask(taskId, {
-      progress: progress
-    }).subscribe({
-      next: () => {
-        console.log('Task progress updated successfully');
-      },
-      error: (error) => {
-        console.error('Error updating task progress:', error);
-        this.loadGanttData(); // Reload on error to reset
-      }
+    this.ganttService.updateTask(taskId, { progress }).subscribe({
+      next: () => console.log('Task progress updated'),
+      error: () => this.loadGanttData(),
     });
   }
 
   private formatDate(date: Date): string {
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
 
   changeViewMode(mode: string): void {
     this.viewMode = mode;
-    if (this.gantt) {
-      this.gantt.change_view_mode(mode);
-    }
+    if (this.gantt) this.gantt.change_view_mode(mode);
   }
 
   addNewTask(): void {
-    const newTask = {
+    const today = new Date();
+    const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    const newTask: GanttTask = {
+      taskId: Date.now(),
       title: 'New Task',
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      startDate: this.formatDate(today),
+      endDate: this.formatDate(nextWeek),
       progress: 0,
       status: 'To Do',
       dependencies: '',
       assigneeName: 'Unassigned'
     };
 
+    this.ganttData?.tasks.push(newTask);
+    this.renderGanttChart();
+
     this.ganttService.createTask(this.projectId, newTask).subscribe({
-      next: () => {
-        this.loadGanttData();
+      next: (createdTask) => {
+        const idx = this.ganttData?.tasks.findIndex(t => t.taskId === newTask.taskId);
+        if (idx !== undefined && idx >= 0) {
+          this.ganttData!.tasks[idx] = createdTask;
+          this.renderGanttChart();
+        }
       },
-      error: (error) => {
-        console.error('Error creating task:', error);
-      }
+      error: (error) => console.error('Error creating task:', error),
     });
   }
 }

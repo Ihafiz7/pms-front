@@ -17,22 +17,6 @@ export interface ProjectSummaryDTO {
   createdAt: string;
 }
 
-// export interface User {
-//   userId: number;
-//   email: string;
-//   firstName: string;
-//   lastName: string;
-//   role: string;
-//   isActive: boolean;
-//   createdAt: string;
-// }
-
-// export enum ProjectRole {
-//   OWNER = 'OWNER',
-//   ADMIN = 'ADMIN',
-//   MEMBER = 'MEMBER'
-// }
-
 export interface AddMembersRequest {
   userIds: number[];
   role: ProjectRole;

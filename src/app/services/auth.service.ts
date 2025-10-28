@@ -392,7 +392,7 @@ export class AuthService extends BaseService {
 
   getRole(): string | null {
     const user = this.currentUserSubject.value || this.getUserFromToken();
-    console.log(user?.role || null);
+    // console.log(user?.role || null);
     
     return user?.role || null;
   }

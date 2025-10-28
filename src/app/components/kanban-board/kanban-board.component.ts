@@ -1,10 +1,11 @@
 import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { Subject, takeUntil, catchError, of, forkJoin } from 'rxjs';
-import { ColumnResponse, Task, User, TaskRequest, TaskPriority, ColumnRequest } from 'src/app/models/models';
+import { Subject, takeUntil, catchError, of, forkJoin, Observable } from 'rxjs';
+import { ColumnResponse, Task, User, TaskRequest, TaskPriority, ColumnRequest, Project } from 'src/app/models/models';
 import { KanbanColumnService } from 'src/app/services/kanban-column.service';
 import { ProjectMemberService } from 'src/app/services/project-member.service';
+import { ProjectService } from 'src/app/services/project.service';
 import { TaskService } from 'src/app/services/task.service';
 import { UserService } from 'src/app/services/user.service';
 
@@ -20,6 +21,7 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
   allUsers: User[] = [];
   currentProjectId!: number;
   isSidebarOpen = false;
+  projectName: string = '';
 
   loading = false;
   isDragging = false;
@@ -45,7 +47,8 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
     private columnService: KanbanColumnService,
     private userService: UserService,
     private route: ActivatedRoute,
-    private projectMemberService: ProjectMemberService
+    private projectMemberService: ProjectMemberService,
+    private projectService: ProjectService
   ) { }
 
   ngOnInit(): void {
@@ -55,6 +58,7 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
         this.currentProjectId = +projectId;
         this.loadUsers();
         this.loadBoardData();
+        this.getProjectName();
       }
     });
   }
@@ -677,4 +681,21 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
       this.notification.show = false;
     }, 5000);
   }
+
+  getProject(): Observable<Project> {
+    return this.projectService.getProjectById(this.currentProjectId);
+  }
+
+  getProjectName(): void {
+  this.getProject().pipe(
+    takeUntil(this.destroy$)
+  ).subscribe({
+    next: (project: Project) => {
+      this.projectName = project.name;
+    },
+    error: (error) => {
+      console.error('Error fetching project:', error);
+    }
+  });
+}
 }

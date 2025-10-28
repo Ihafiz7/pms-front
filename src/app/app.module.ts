@@ -18,6 +18,7 @@ import { KanbanBoardComponent } from './components/kanban-board/kanban-board.com
 import { BoardModalsComponent } from './components/board-modals/board-modals.component';
 import { UserManagementsComponent } from './components/user-managements/user-managements.component';
 import { GanttChartComponent } from './components/gantt-chart/gantt-chart.component';
+import { TeamComponent } from './components/team/team.component';
 
 
 @NgModule({
@@ -32,7 +33,8 @@ import { GanttChartComponent } from './components/gantt-chart/gantt-chart.compon
     KanbanBoardComponent,
     BoardModalsComponent,
     UserManagementsComponent,
-    GanttChartComponent
+    GanttChartComponent,
+    TeamComponent
   ],
   imports: [
     BrowserModule,

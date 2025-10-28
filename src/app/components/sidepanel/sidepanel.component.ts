@@ -12,7 +12,7 @@ export class SidepanelComponent {
     { label: 'project', icon: 'assets/icons/kanban.svg', route:'projects' },
     { label: 'Users', icon: 'assets/icons/users.svg',route:'/users' },
     { label: 'Gantt', icon: 'assets/icons/gantt.svg',route:'/gantt' },
-    { label: 'Team', icon: 'assets/icons/team.svg' },
+    { label: 'Team', icon: 'assets/icons/team.svg',route:'/teams'  },
     { label: 'Discussion', icon: 'assets/icons/discussion.svg' },
     { label: 'Files', icon: 'assets/icons/files.svg' },
     { label: 'Mileston', icon: 'assets/icons/milestone.svg' },

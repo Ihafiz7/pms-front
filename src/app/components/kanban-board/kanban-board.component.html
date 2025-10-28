@@ -15,7 +15,7 @@
       <!-- Board Header -->
       <div class="mb-4 flex justify-between items-center">
         <div>
-          <h1 *ngIf="currentProjectId" class="text-2xl font-bold text-gray-800">Kanban Board(ID-{{ currentProjectId }})</h1>
+          <h1 *ngIf="currentProjectId" class="text-2xl font-bold text-gray-800"> {{projectName}} (ID-{{ currentProjectId }})</h1>
         </div>
         <button (click)="openCreateColumn()"
           class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center space-x-2">

@@ -96,7 +96,7 @@ export interface ProjectTask {
 }
 
 export enum ProjectStatus {
-  PLANNING = 'PLANNING',
+  PLANNING = 'PLANNED',
   IN_PROGRESS = 'IN_PROGRESS',
   ON_HOLD = 'ON_HOLD',
   COMPLETED = 'COMPLETED',

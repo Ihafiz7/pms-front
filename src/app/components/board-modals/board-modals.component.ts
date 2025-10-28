@@ -140,14 +140,14 @@ export class BoardModalsComponent implements OnInit, OnChanges {
     }
   }
 
-  /* ---------- Form Submission ---------- */
   onSubmit(): void {
     if (this.mode?.includes('Task') && this.taskForm.valid) {
       this.submitTaskForm();
     } else if (this.mode?.includes('Column') && this.columnForm.valid) {
       this.submitColumnForm();
     } else {
-      console.log('Form invalid or mode not set');
+      console.warn();
+      ('Form invalid or mode not set');
     }
   }
 
@@ -217,7 +217,6 @@ export class BoardModalsComponent implements OnInit, OnChanges {
     }
   }
 
-  /* ---------- UI Handlers ---------- */
   onClose(): void {
     this.close.emit();
   }
@@ -241,7 +240,7 @@ export class BoardModalsComponent implements OnInit, OnChanges {
     this.columnForm.patchValue({ color });
   }
 
-  /* ---------- Getters for Template ---------- */
+
   get modalTitle(): string {
     switch (this.mode) {
       case 'createTask': return 'Create New Task';
