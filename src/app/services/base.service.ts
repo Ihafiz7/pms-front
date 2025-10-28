@@ -11,7 +11,7 @@ export abstract class BaseService {
   protected readonly TOKEN_KEY = 'token'; // Key to store JWT token
 
   //Get authentication headers with JWT token
-  protected getAuthHeaders(): HttpHeaders {
+  public getAuthHeaders(): HttpHeaders {
     const token = this.getToken();
     if (!token) {
       console.warn('No authentication token found');

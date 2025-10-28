@@ -19,6 +19,11 @@ import { BoardModalsComponent } from './components/board-modals/board-modals.com
 import { UserManagementsComponent } from './components/user-managements/user-managements.component';
 import { GanttChartComponent } from './components/gantt-chart/gantt-chart.component';
 import { TeamComponent } from './components/team/team.component';
+import { ExpenseComponent } from './components/expense/expense.component';
+import { FileManagerComponentComponent } from './components/file-manager-component/file-manager-component.component';
+import { FileUploadModalComponent } from './components/file-upload-modal/file-upload-modal.component';
+import { ConfirmDeleteComponent } from './components/confirm-delete/confirm-delete.component';
+import { FileDetailsComponent } from './components/file-details/file-details.component';
 
 
 @NgModule({
@@ -34,7 +39,12 @@ import { TeamComponent } from './components/team/team.component';
     BoardModalsComponent,
     UserManagementsComponent,
     GanttChartComponent,
-    TeamComponent
+    TeamComponent,
+    ExpenseComponent,
+    FileManagerComponentComponent,
+    FileUploadModalComponent,
+    ConfirmDeleteComponent,
+    FileDetailsComponent
   ],
   imports: [
     BrowserModule,

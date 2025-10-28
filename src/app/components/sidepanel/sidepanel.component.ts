@@ -13,6 +13,7 @@ export class SidepanelComponent {
     { label: 'Users', icon: 'assets/icons/users.svg',route:'/users' },
     { label: 'Gantt', icon: 'assets/icons/gantt.svg',route:'/gantt' },
     { label: 'Team', icon: 'assets/icons/team.svg',route:'/teams'  },
+    { label: 'Expense', icon: 'assets/icons/expense.svg',route:'/expense'  },
     { label: 'Discussion', icon: 'assets/icons/discussion.svg' },
     { label: 'Files', icon: 'assets/icons/files.svg' },
     { label: 'Mileston', icon: 'assets/icons/milestone.svg' },

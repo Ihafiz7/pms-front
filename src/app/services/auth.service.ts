@@ -44,7 +44,7 @@
 // export class AuthService extends BaseService {
 //   private currentUserSubject = new BehaviorSubject<UserProfile | null>(null);
 //   public currentUser$ = this.currentUserSubject.asObservable();
-  
+
 //   // Remove TOKEN_KEY from here since it's in BaseService
 //   private readonly USER_KEY = 'currentUser';
 
@@ -172,7 +172,7 @@
 
 //   private setAuthState(token: string, authResponse: AuthResponse): void {
 //     localStorage.setItem(this.TOKEN_KEY, token); //inherited TOKEN_KEY
-    
+
 //     const userProfile: UserProfile = {
 //       userId: authResponse.userId || this.getUserIdFromToken(token),
 //       email: authResponse.email || this.getEmailFromToken(token),
@@ -206,7 +206,7 @@
 //       return null;
 //     }
 //   }
-  
+
 //   getUserIdFromToken(token: string): number {
 //     if (!token) {
 //       throw new Error('Token is required to extract userId');
@@ -255,10 +255,11 @@
 // }
 
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { JwtHelperService } from '@auth0/angular-jwt';
 import { Observable, BehaviorSubject, tap, catchError, of } from 'rxjs';
 import { BaseService } from './base.service';
+import { Router } from '@angular/router';
 
 export interface LoginRequest {
   email: string;
@@ -300,12 +301,13 @@ export interface UserProfile {
 export class AuthService extends BaseService {
   private currentUserSubject = new BehaviorSubject<UserProfile | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
-  
+
   private readonly USER_KEY = 'currentUser';
 
   constructor(
     private http: HttpClient,
-    private jwtHelper: JwtHelperService
+    private jwtHelper: JwtHelperService,
+    private router: Router
   ) {
     super();
     this.initializeAuthState();
@@ -374,7 +376,7 @@ export class AuthService extends BaseService {
   }
 
   logout(): void {
-    localStorage.removeItem(this.TOKEN_KEY); 
+    localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
     this.currentUserSubject.next(null);
   }
@@ -393,7 +395,7 @@ export class AuthService extends BaseService {
   getRole(): string | null {
     const user = this.currentUserSubject.value || this.getUserFromToken();
     // console.log(user?.role || null);
-    
+
     return user?.role || null;
   }
 
@@ -412,10 +414,10 @@ export class AuthService extends BaseService {
     return user ? `${user.firstName} ${user.lastName}`.trim() : 'User';
   }
 
-  getUserId(): number | null {
-    const user = this.currentUserSubject.value || this.getUserFromToken();
-    return user?.userId || null;
-  }
+  // getUserId(): number | null {
+  //   const user = this.currentUserSubject.value || this.getUserFromToken();
+  //   return user?.userId || null;
+  // }
 
   getTokenExpiration(): Date | null {
     const token = this.getToken();
@@ -458,26 +460,26 @@ export class AuthService extends BaseService {
   }
 
   private setAuthState(token: string, authResponse: AuthResponse): void {
-  localStorage.setItem(this.TOKEN_KEY, token);
-  
-  // Decode the JWT first
-  const decoded = this.jwtHelper.decodeToken(token);
-  console.log('Decoded JWT inside setAuthState:', decoded);
+    localStorage.setItem(this.TOKEN_KEY, token);
 
-  // Build user profile correctly from token first
-  const userProfile: UserProfile = {
-    userId: decoded.userId || authResponse.userId || 0,
-    email: decoded.sub || authResponse.email || 'unknown@example.com',
-    firstName: authResponse.firstName || 'User',
-    lastName: authResponse.lastName || '',
-    role: decoded.Role || decoded.role || decoded.authorities?.[0] || authResponse.role || 'USER',
-    isActive: true,
-    createdAt: new Date(decoded.iat * 1000)
-  };
+    // Decode the JWT first
+    const decoded = this.jwtHelper.decodeToken(token);
+    console.log('Decoded JWT inside setAuthState:', decoded);
 
-  this.currentUserSubject.next(userProfile);
-  this.saveUserToStorage(userProfile);
-}
+    // Build user profile correctly from token first
+    const userProfile: UserProfile = {
+      userId: decoded.userId || authResponse.userId || 0,
+      email: decoded.sub || authResponse.email || 'unknown@example.com',
+      firstName: authResponse.firstName || 'User',
+      lastName: authResponse.lastName || '',
+      role: decoded.Role || decoded.role || decoded.authorities?.[0] || authResponse.role || 'USER',
+      isActive: true,
+      createdAt: new Date(decoded.iat * 1000)
+    };
+
+    this.currentUserSubject.next(userProfile);
+    this.saveUserToStorage(userProfile);
+  }
 
   private getUserFromToken(): UserProfile | null {
     const token = this.getToken();
@@ -486,7 +488,7 @@ export class AuthService extends BaseService {
     try {
       const decoded = this.jwtHelper.decodeToken(token);
       console.log('Decoded JWT token:', decoded);
-      
+
       return {
         userId: decoded.userId || decoded.sub || this.extractUserIdFromToken(decoded),
         email: decoded.email || decoded.sub,
@@ -571,5 +573,27 @@ export class AuthService extends BaseService {
   // Method to manually trigger auth state re-initialization
   reinitializeAuth(): void {
     this.initializeAuthState();
+  }
+
+  getAuthHeadersForUpload(): HttpHeaders {
+    const token = this.getToken();
+    if (!token) {
+      console.warn('No JWT token found');
+      this.router.navigate(['/login']);
+    }
+
+    return new HttpHeaders({
+      'Authorization': `Bearer ${token}`
+    });
+  }
+
+  getUserId(): number {
+    const user = this.currentUserSubject.value || this.getUserFromToken();
+    if (!user?.userId) {
+      console.error('User ID not found - user might not be authenticated');
+      this.logout();
+      throw new Error('User not authenticated');
+    }
+    return user.userId;
   }
 }

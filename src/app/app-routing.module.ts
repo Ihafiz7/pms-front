@@ -8,6 +8,8 @@ import { KanbanBoardComponent } from './components/kanban-board/kanban-board.com
 import { UserManagementsComponent } from './components/user-managements/user-managements.component';
 import { GanttChartComponent } from './components/gantt-chart/gantt-chart.component';
 import { TeamComponent } from './components/team/team.component';
+import { ExpenseComponent } from './components/expense/expense.component';
+import { FileManagerComponentComponent } from './components/file-manager-component/file-manager-component.component';
 
 const routes: Routes = [
   { path: '',redirectTo: '/login', pathMatch: 'full'},
@@ -18,6 +20,8 @@ const routes: Routes = [
   // { path: 'task', component:TaskComponent},
   { path: 'users', component: UserManagementsComponent},
   { path: 'teams', component: TeamComponent},
+  { path: 'expense', component: ExpenseComponent},
+  { path: 'files', component: FileManagerComponentComponent},
   { path: 'gantt', component: GanttChartComponent},
 
   { path: '**',redirectTo: '/login'}

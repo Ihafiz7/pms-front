@@ -1,0 +1,171 @@
+<!-- components/file-upload-modal/file-upload-modal.component.html -->
+<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+  <div class="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white">
+      <h3 class="text-lg font-semibold text-gray-900">Upload File</h3>
+      <button
+        (click)="closeModal()"
+        class="text-gray-400 hover:text-gray-600 transition-colors"
+        [disabled]="isUploading"
+        type="button"
+      >
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Content -->
+    <div class="p-6 space-y-4">
+      <!-- Project Selection -->
+      <div *ngIf="!projectId">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Project <span class="text-red-500">*</span>
+        </label>
+        <select
+          [(ngModel)]="selectedProjectId"
+          (change)="onProjectChange()"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          [disabled]="isLoadingProjects"
+        >
+          <option [ngValue]="undefined">Select a project</option>
+          <option *ngFor="let project of projects" [ngValue]="project.projectId">
+            {{ project.name }}
+          </option>
+        </select>
+        <div *ngIf="isLoadingProjects" class="text-sm text-gray-500 mt-1">
+          Loading projects...
+        </div>
+      </div>
+
+      <!-- Task Selection -->
+      <div *ngIf="!taskId && selectedProjectId">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Task (Optional)
+        </label>
+        <select
+          [(ngModel)]="selectedTaskId"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          [disabled]="isLoadingTasks"
+        >
+          <option [ngValue]="undefined">Select a task (optional)</option>
+          <option *ngFor="let task of tasks" [ngValue]="task.taskId">
+            {{ task.title }}
+          </option>
+        </select>
+        <div *ngIf="isLoadingTasks" class="text-sm text-gray-500 mt-1">
+          Loading tasks...
+        </div>
+      </div>
+
+      <!-- Context Info -->
+      <div *ngIf="projectId || taskId" class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+        <p class="text-sm text-blue-800">
+          <span *ngIf="projectId">Uploading to project context</span>
+          <span *ngIf="taskId">Uploading to task context</span>
+        </p>
+      </div>
+
+      <!-- Drag & Drop Area -->
+      <div
+        class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center transition-colors"
+        [class.border-blue-400]="dragOver"
+        [class.bg-blue-50]="dragOver"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onDrop($event)"
+      >
+        <div *ngIf="!selectedFile" class="space-y-3">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+          </svg>
+          <div>
+            <p class="text-sm font-medium text-gray-900">Drop your file here</p>
+            <p class="text-sm text-gray-500 mt-1">or</p>
+          </div>
+          <label for="fileInput" class="cursor-pointer">
+            <span class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              Browse Files
+            </span>
+            <input
+              id="fileInput"
+              type="file"
+              (change)="onFileSelected($event)"
+              class="hidden"
+              accept="*/*"
+            >
+          </label>
+          <p class="text-xs text-gray-500">Maximum file size: 10MB</p>
+        </div>
+
+        <!-- Selected File -->
+        <div *ngIf="selectedFile" class="space-y-3">
+          <div class="flex items-center justify-center space-x-3">
+            <span class="text-2xl">{{ getFileIcon(selectedFile.name) }}</span>
+            <div class="text-left">
+              <p class="text-sm font-medium text-gray-900 truncate max-w-xs">{{ selectedFile.name }}</p>
+              <p class="text-sm text-gray-500">{{ formatFileSize(selectedFile.size) }}</p>
+            </div>
+            <button
+              (click)="removeFile()"
+              class="text-gray-400 hover:text-red-600 transition-colors"
+              [disabled]="isUploading"
+              type="button"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error Message -->
+      <div *ngIf="errorMessage" class="bg-red-50 border border-red-200 rounded-lg p-3">
+        <p class="text-sm text-red-800">{{ errorMessage }}</p>
+      </div>
+
+      <!-- Upload Progress -->
+      <div *ngIf="isUploading" class="space-y-2">
+        <div class="flex justify-between text-sm text-gray-600">
+          <span>Uploading...</span>
+          <span>{{ uploadProgress }}%</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2">
+          <div 
+            class="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
+            [style.width.%]="uploadProgress"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="flex justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50 sticky bottom-0">
+      <button
+        (click)="closeModal()"
+        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        [disabled]="isUploading"
+        type="button"
+      >
+        Cancel
+      </button>
+      <button
+        (click)="uploadFile()"
+        [disabled]="!selectedFile || isUploading || (!projectId && !selectedProjectId)"
+        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        type="button"
+      >
+        <span *ngIf="!isUploading">Upload</span>
+        <span *ngIf="isUploading" class="flex items-center">
+          <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Uploading...
+        </span>
+      </button>
+    </div>
+  </div>
+</div>

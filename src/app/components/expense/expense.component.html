@@ -1,0 +1,559 @@
+<!-- src/app/components/expense-list/expense-list.component.html -->
+<div class="min-h-screen bg-gray-50 p-6">
+
+
+
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Expense Management</h1>
+            <p class="text-gray-600 mt-2">Track and manage project expenses</p>
+
+            <!-- Statistics -->
+            <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-white p-4 rounded-lg border border-gray-200">
+                    <div class="text-sm font-medium text-gray-500">Total Expenses</div>
+                    <div class="text-2xl font-bold text-gray-900">{{ totalExpenses }}</div>
+                </div>
+                <div class="bg-white p-4 rounded-lg border border-gray-200">
+                    <div class="text-sm font-medium text-gray-500">Filtered Expenses</div>
+                    <div class="text-2xl font-bold text-blue-600">{{ filteredExpensesTotal }}</div>
+                </div>
+                <div class="bg-white p-4 rounded-lg border border-gray-200">
+                    <div class="text-sm font-medium text-gray-500">Total Amount</div>
+                    <div class="text-2xl font-bold text-green-600">
+                        ${{ getFilteredTotalAmount().toFixed(2) }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Filter Expenses</h3>
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <!-- Project Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Project</label>
+                    <select [(ngModel)]="projectFilter" (change)="applyFilters()"
+                        class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="ALL">All Projects</option>
+                        <option *ngFor="let project of projects" [value]="project.projectId">
+                            {{ project.name }}
+                        </option>
+                    </select>
+                </div>
+
+                <!-- Status Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                    <select [(ngModel)]="statusFilter" (change)="applyFilters()"
+                        class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="ALL">All Statuses</option>
+                        <option value="SUBMITTED">Submitted</option>
+                        <option value="UNDER_REVIEW">Under Review</option>
+                        <option value="APPROVED">Approved</option>
+                        <option value="REJECTED">Rejected</option>
+                        <option value="PAID">Paid</option>
+                    </select>
+                </div>
+
+                <!-- Category Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                    <select [(ngModel)]="categoryFilter" (change)="applyFilters()"
+                        class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">All Categories</option>
+                        <option *ngFor="let category of categories" [value]="category">
+                            {{ category }}
+                        </option>
+                    </select>
+                </div>
+
+                <!-- Start Date -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">From Date</label>
+                    <input type="date" [(ngModel)]="dateRange.start" (change)="applyFilters()"
+                        class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+
+                <!-- End Date -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">To Date</label>
+                    <input type="date" [(ngModel)]="dateRange.end" (change)="applyFilters()"
+                        class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+            </div>
+
+            <!-- Clear Filters & Current Filter Info -->
+            <div class="mt-4 flex justify-between items-center">
+                <div class="text-sm text-gray-600">
+                    <span *ngIf="projectFilter !== 'ALL'" class="font-medium">
+                        Viewing expenses for: {{ getCurrentProjectName() }}
+                    </span>
+                    <span *ngIf="projectFilter === 'ALL'">
+                        Showing {{ filteredExpensesTotal }} of {{ totalExpenses }} expenses
+                    </span>
+                </div>
+                <button (click)="clearFilters()"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    Clear All Filters
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div *ngIf="loading" class="flex justify-center items-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+
+        <!-- Error State -->
+        <div *ngIf="error && !loading" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div class="flex items-center">
+                <svg class="w-5 h-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                        clip-rule="evenodd" />
+                </svg>
+                <span class="text-red-800">{{ error }}</span>
+            </div>
+        </div>
+
+        <!-- Expenses Table -->
+        <div *ngIf="!loading && !error" class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Expense Details
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Project
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Submitted By
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Amount
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Date
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Actions
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <tr *ngFor="let expense of paginatedExpenses" class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div
+                                        class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <span class="text-blue-600 font-semibold">{{ expense.category.charAt(0)
+                                            }}</span>
+                                    </div>
+                                    <div class="ml-4">
+                                        <div class="text-sm font-medium text-gray-900">
+                                            {{ expense.category }}
+                                        </div>
+                                        <div class="text-sm text-gray-500">
+                                            {{ expense.description || 'No description' }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">{{ expense.projectName }}</div>
+                                <div class="text-sm text-gray-500">ID: {{ expense.projectId }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">{{ expense.submittedByName }}</div>
+                                <div class="text-sm text-gray-500">ID: {{ expense.submittedById }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-semibold text-gray-900">
+                                    ${{ expense.amount.toFixed(2) }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span
+                                    [class]="'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' + getStatusColor(expense.status)">
+                                    {{ expense.status }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ expense.date | date:'mediumDate' }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <div class="flex space-x-2">
+                                    <button (click)="openExpenseDetail(expense)"
+                                        class="text-blue-600 hover:text-blue-900 transition-colors flex items-center">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                        View
+                                    </button>
+                                    <button (click)="openEditExpenseModal(expense)"
+                                        class="text-green-600 hover:text-green-900 transition-colors">
+                                        Edit
+                                    </button>
+                                    <button (click)="deleteExpense(expense.expenseId)"
+                                        class="text-red-600 hover:text-red-900 transition-colors">
+                                        Delete
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty State -->
+            <div *ngIf="filteredExpenses.length === 0" class="text-center py-12">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">No expenses found</h3>
+                <p class="mt-1 text-sm text-gray-500">
+                    <span *ngIf="projectFilter !== 'ALL'">
+                        No expenses found for {{ getCurrentProjectName() }}.
+                    </span>
+                    <span *ngIf="projectFilter === 'ALL'">
+                        Get started by creating a new expense.
+                    </span>
+                </p>
+                <div class="mt-4">
+                    <button (click)="openAddExpenseModal()"
+                        class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Add New Expense
+                    </button>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div *ngIf="filteredExpenses.length > 0" class="bg-white px-6 py-3 border-t border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div class="text-sm text-gray-700">
+                        Showing <span class="font-medium">{{ (currentPage - 1) * itemsPerPage + 1 }}</span>
+                        to <span class="font-medium">{{ getEndIndex() }}</span>
+                        of <span class="font-medium">{{ totalItems }}</span> results
+                    </div>
+                    <div class="flex space-x-2">
+                        <button (click)="onPageChange(currentPage - 1)" [disabled]="currentPage === 1"
+                            [class]="currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''"
+                            class="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                            Previous
+                        </button>
+                        <button (click)="onPageChange(currentPage + 1)" [disabled]="isLastPage()"
+                            [class]="isLastPage() ? 'opacity-50 cursor-not-allowed' : ''"
+                            class="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                            Next
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Expense Button -->
+        <div class="mt-6 flex justify-end">
+            <button (click)="openAddExpenseModal()"
+                class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add New Expense
+            </button>
+        </div>
+    </div>
+
+    <!-- Expense Modal -->
+    <div *ngIf="showExpenseModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+        (click)="closeExpenseModal()">
+        <div class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white"
+            (click)="$event.stopPropagation()">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-semibold text-gray-900">
+                    {{ editingExpense ? 'Edit Expense' : 'Add New Expense' }}
+                </h3>
+                <button (click)="closeExpenseModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Error Message -->
+            <div *ngIf="error" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-red-800 text-sm">{{ error }}</span>
+                </div>
+            </div>
+
+            <!-- Expense Form -->
+            <form (ngSubmit)="onExpenseFormSubmit()" #expenseForm="ngForm" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Project Selection -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Project *
+                        </label>
+                        <select [(ngModel)]="newExpense.projectId" name="projectId" required
+                            class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            [class.border-red-300]="!newExpense.projectId">
+                            <option value="">Select Project</option>
+                            <option *ngFor="let project of projects" [value]="project.projectId">
+                                {{ project.name }}
+                            </option>
+                        </select>
+                        <div *ngIf="!newExpense.projectId" class="text-red-500 text-xs mt-1">
+                            Please select a project
+                        </div>
+                    </div>
+
+                    <!-- Submitted By -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Submitted By *
+                        </label>
+                        <select [(ngModel)]="newExpense.submittedBy" name="submittedBy" required
+                            class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            [class.border-red-300]="!newExpense.submittedBy">
+                            <option value="">Select User</option>
+                            <option *ngFor="let user of users" [value]="user.userId">
+                                {{ user.firstName }} {{ user.lastName }}
+                            </option>
+                        </select>
+                        <div *ngIf="!newExpense.submittedBy" class="text-red-500 text-xs mt-1">
+                            Please select a user
+                        </div>
+                    </div>
+
+                    <!-- Category -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Category *
+                        </label>
+                        <select [(ngModel)]="newExpense.category" name="category" required
+                            class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            [class.border-red-300]="!newExpense.category">
+                            <option value="">Select Category</option>
+                            <option *ngFor="let category of categories" [value]="category">
+                                {{ category }}
+                            </option>
+                            <option value="CUSTOM">+ Add Custom Category</option>
+                        </select>
+
+                        <!-- Custom Category Input -->
+                        <div *ngIf="newExpense.category === 'CUSTOM'" class="mt-2">
+                            <input type="text" [(ngModel)]="customCategory" (blur)="addCustomCategory()"
+                                placeholder="Enter new category name"
+                                class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                name="customCategory">
+                            <p class="text-xs text-gray-500 mt-1">Press Tab or click outside to save this category</p>
+                        </div>
+
+                        <div *ngIf="!newExpense.category" class="text-red-500 text-xs mt-1">
+                            Please select a category
+                        </div>
+                    </div>
+
+                    <!-- Amount -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Amount *
+                        </label>
+                        <input type="number" [(ngModel)]="newExpense.amount" name="amount" required min="0.01"
+                            step="0.01" placeholder="0.00"
+                            class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            [class.border-red-300]="!newExpense.amount || newExpense.amount <= 0">
+                        <div *ngIf="!newExpense.amount || newExpense.amount <= 0" class="text-red-500 text-xs mt-1">
+                            Please enter a valid amount greater than 0
+                        </div>
+                    </div>
+
+                    <!-- Date -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Date *
+                        </label>
+                        <input type="date" [(ngModel)]="newExpense.date" name="date" required
+                            class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            [class.border-red-300]="!newExpense.date">
+                        <div *ngIf="!newExpense.date" class="text-red-500 text-xs mt-1">
+                            Please select a date
+                        </div>
+                    </div>
+
+                    <!-- Status -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Status *
+                        </label>
+                        <select [(ngModel)]="newExpense.status" name="status" required
+                            class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="SUBMITTED">Submitted</option>
+                            <option value="UNDER_REVIEW">Under Review</option>
+                            <option value="APPROVED">Approved</option>
+                            <option value="REJECTED">Rejected</option>
+                            <option value="PAID">Paid</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Description
+                    </label>
+                    <textarea [(ngModel)]="newExpense.description" name="description" rows="3"
+                        placeholder="Enter expense description..."
+                        class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+                </div>
+
+                <!-- Receipt URL -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Receipt URL (Optional)
+                    </label>
+                    <input type="url" [(ngModel)]="newExpense.receiptUrl" name="receiptUrl"
+                        placeholder="https://example.com/receipt.jpg"
+                        class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                    <button type="button" (click)="closeExpenseModal()"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        Cancel
+                    </button>
+                    <button type="submit" [disabled]="!expenseForm.valid || savingExpense"
+                        [class]="!expenseForm.valid || savingExpense ? 'opacity-50 cursor-not-allowed' : ''"
+                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <span *ngIf="savingExpense" class="flex items-center">
+                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                </path>
+                            </svg>
+                            Saving...
+                        </span>
+                        <span *ngIf="!savingExpense">
+                            {{ editingExpense ? 'Update Expense' : 'Create Expense' }}
+                        </span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- Expense Detail Modal -->
+    <div *ngIf="showExpenseDetail && selectedExpense"
+        class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+        (click)="closeExpenseDetail()">
+        <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-2xl bg-white"
+            (click)="$event.stopPropagation()">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-semibold text-gray-900">Expense Details</h3>
+                <button (click)="closeExpenseDetail()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Expense Details -->
+            <div class="space-y-4" *ngIf="selectedExpense">
+                <div class="flex items-center space-x-3">
+                    <div class="flex-shrink-0 h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                        <span class="text-blue-600 font-semibold text-lg">{{ selectedExpense.category.charAt(0)
+                            }}</span>
+                    </div>
+                    <div>
+                        <div class="text-lg font-semibold text-gray-900">{{ selectedExpense.category }}</div>
+                        <div class="text-sm text-gray-500">{{ selectedExpense.description || 'No description' }}</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <div class="text-gray-500 font-medium">Amount</div>
+                        <div class="text-lg font-bold text-green-600">${{ selectedExpense.amount.toFixed(2) }}</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-500 font-medium">Status</div>
+                        <span
+                            [class]="'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' + getStatusColor(selectedExpense.status)">
+                            {{ selectedExpense.status }}
+                        </span>
+                    </div>
+                    <div>
+                        <div class="text-gray-500 font-medium">Project</div>
+                        <div class="font-medium text-gray-900">{{ selectedExpense.projectName }}</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-500 font-medium">Date</div>
+                        <div class="font-medium text-gray-900">{{ selectedExpense.date | date:'mediumDate' }}</div>
+                    </div>
+                    <div class="col-span-2">
+                        <div class="text-gray-500 font-medium">Submitted By</div>
+                        <div class="font-medium text-gray-900">{{ selectedExpense.submittedByName }}</div>
+                    </div>
+                    <div class="col-span-2" *ngIf="selectedExpense.receiptUrl">
+                        <div class="text-gray-500 font-medium">Receipt</div>
+                        <a [href]="selectedExpense.receiptUrl" target="_blank"
+                            class="text-blue-600 hover:text-blue-800 underline">
+                            View Receipt
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Timestamps -->
+                <div class="pt-4 border-t border-gray-200"
+                    *ngIf="selectedExpense.createdAt || selectedExpense.updatedAt">
+                    <div class="text-xs text-gray-500 space-y-1">
+                        <div *ngIf="selectedExpense.createdAt">Created: {{ selectedExpense.createdAt | date:'medium' }}
+                        </div>
+                        <div *ngIf="selectedExpense.updatedAt">Updated: {{ selectedExpense.updatedAt | date:'medium' }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="mt-6 flex space-x-3">
+                <button (click)="openEditExpenseModal(selectedExpense!); closeExpenseDetail()"
+                    class="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                    Edit Expense
+                </button>
+                <button (click)="closeExpenseDetail()"
+                    class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
