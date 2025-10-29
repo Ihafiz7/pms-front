@@ -30,6 +30,7 @@ export class GanttChartComponent implements OnInit, OnChanges {
   error = '';
   gantt: any;
   viewModes = ['Quarter Day', 'Half Day', 'Day', 'Week', 'Month'];
+  isSidebarOpen = false;
 
   constructor(private ganttService: GanttService) { }
 
@@ -231,5 +232,9 @@ export class GanttChartComponent implements OnInit, OnChanges {
       },
       error: (error) => console.error('Error creating task:', error),
     });
+  }
+
+  toggleSidebar(): void {
+    this.isSidebarOpen = !this.isSidebarOpen;
   }
 }

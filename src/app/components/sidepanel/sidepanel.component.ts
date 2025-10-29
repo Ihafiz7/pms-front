@@ -15,10 +15,10 @@ export class SidepanelComponent {
     { label: 'Team', icon: 'assets/icons/team.svg',route:'/teams'  },
     { label: 'Expense', icon: 'assets/icons/expense.svg',route:'/expense'  },
     { label: 'Discussion', icon: 'assets/icons/discussion.svg' },
-    { label: 'Files', icon: 'assets/icons/files.svg' },
+    { label: 'Files', icon: 'assets/icons/files.svg' ,route:'/files'},
     { label: 'Mileston', icon: 'assets/icons/milestone.svg' },
     { label: 'Report', icon: 'assets/icons/report.svg' },
-    { label: 'Resources', icon: 'assets/icons/human-resources.svg' },
+    { label: 'Resources', icon: 'assets/icons/human-resources.svg',route:'/resource' },
     { label: 'Workflow', icon: 'assets/icons/workflow.svg' },
     { label: 'Settings', icon: 'assets/icons/settings.svg' },
   ];

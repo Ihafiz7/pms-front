@@ -24,6 +24,8 @@ import { FileManagerComponentComponent } from './components/file-manager-compone
 import { FileUploadModalComponent } from './components/file-upload-modal/file-upload-modal.component';
 import { ConfirmDeleteComponent } from './components/confirm-delete/confirm-delete.component';
 import { FileDetailsComponent } from './components/file-details/file-details.component';
+import { ExpenseReportComponent } from './components/expense-report/expense-report.component';
+import { ResourceAllocationComponent } from './components/resource-allocation/resource-allocation.component';
 
 
 @NgModule({
@@ -44,7 +46,9 @@ import { FileDetailsComponent } from './components/file-details/file-details.com
     FileManagerComponentComponent,
     FileUploadModalComponent,
     ConfirmDeleteComponent,
-    FileDetailsComponent
+    FileDetailsComponent,
+    ExpenseReportComponent,
+    ResourceAllocationComponent
   ],
   imports: [
     BrowserModule,

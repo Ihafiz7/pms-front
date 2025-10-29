@@ -24,6 +24,7 @@ export class TeamComponent implements OnInit {
   currentTeamMembers: User[] = [];
   currentUser: UserProfile | null = null;
   allUsers: User[] = [];
+  isSidebarOpen = false;
   
   teamForm: FormGroup;
   selectedUsers: User[] = [];
@@ -420,5 +421,9 @@ export class TeamComponent implements OnInit {
       default:
         return role.replace('ROLE_', '').replace('_', ' ');
     }
+  }
+
+  toggleSidebar(): void {
+    this.isSidebarOpen = !this.isSidebarOpen;
   }
 }

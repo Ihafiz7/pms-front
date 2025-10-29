@@ -10,6 +10,8 @@ import { GanttChartComponent } from './components/gantt-chart/gantt-chart.compon
 import { TeamComponent } from './components/team/team.component';
 import { ExpenseComponent } from './components/expense/expense.component';
 import { FileManagerComponentComponent } from './components/file-manager-component/file-manager-component.component';
+import { ResourceAllocationComponent } from './components/resource-allocation/resource-allocation.component';
+import { ExpenseReportComponent } from './components/expense-report/expense-report.component';
 
 const routes: Routes = [
   { path: '',redirectTo: '/login', pathMatch: 'full'},
@@ -17,13 +19,13 @@ const routes: Routes = [
   { path: 'register', component: RegisterComponent },
   { path: 'projects', component: ProjectBoardComponent},
   { path: 'kanban/:id', component:KanbanBoardComponent},
-  // { path: 'task', component:TaskComponent},
   { path: 'users', component: UserManagementsComponent},
   { path: 'teams', component: TeamComponent},
   { path: 'expense', component: ExpenseComponent},
   { path: 'files', component: FileManagerComponentComponent},
   { path: 'gantt', component: GanttChartComponent},
-
+  { path: 'resource', component: ResourceAllocationComponent},
+  { path: 'report', component: ExpenseReportComponent},
   { path: '**',redirectTo: '/login'}
 
 ];

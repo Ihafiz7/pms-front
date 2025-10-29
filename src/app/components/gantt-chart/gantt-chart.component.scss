@@ -97,3 +97,134 @@
     height: 300px;
   }
 }
+
+/* Modern Button Styles */
+.btn-primary {
+  @apply bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2 text-sm;
+}
+
+.btn-secondary {
+  @apply bg-white border border-gray-200 hover:border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2 text-sm;
+}
+
+/* Status Dots */
+.status-dot {
+  @apply w-3 h-3 inline-block;
+}
+
+.status-done {
+  @apply bg-green-500;
+}
+
+.status-review {
+  @apply bg-yellow-500;
+}
+
+.status-in-progress {
+  @apply bg-blue-500;
+}
+
+.status-todo {
+  @apply bg-gray-400;
+}
+
+.status-blocked {
+  @apply bg-red-500;
+}
+
+/* Custom Scrollbar for Modern Look */
+.gantt-chart::-webkit-scrollbar {
+  height: 8px;
+}
+
+.gantt-chart::-webkit-scrollbar-track {
+  @apply bg-gray-100 rounded-full;
+}
+
+.gantt-chart::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full hover:bg-gray-400;
+}
+
+/* Animation for loading state */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Hover effects for interactive elements */
+select:hover, button:hover {
+  transform: translateY(-1px);
+  transition: transform 0.2s ease;
+}
+
+/* Modern Button Styles */
+.btn-primary {
+  @apply bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2 text-sm;
+}
+
+.btn-secondary {
+  @apply bg-white border border-gray-200 hover:border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2 text-sm;
+}
+
+/* Status Dots */
+.status-dot {
+  @apply w-3 h-3 inline-block;
+}
+
+.status-done {
+  @apply bg-green-500;
+}
+
+.status-review {
+  @apply bg-yellow-500;
+}
+
+.status-in-progress {
+  @apply bg-blue-500;
+}
+
+.status-todo {
+  @apply bg-gray-400;
+}
+
+.status-blocked {
+  @apply bg-red-500;
+}
+
+/* Custom Scrollbar for Modern Look */
+.gantt-chart::-webkit-scrollbar {
+  height: 8px;
+}
+
+.gantt-chart::-webkit-scrollbar-track {
+  @apply bg-gray-100 rounded-full;
+}
+
+.gantt-chart::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full hover:bg-gray-400;
+}
+
+/* Animation for loading state */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Hover effects for interactive elements */
+select:hover, button:hover {
+  transform: translateY(-1px);
+  transition: transform 0.2s ease;
+}
+
+/* Modern wrapper styling */
+.gantt-modern-wrapper {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}

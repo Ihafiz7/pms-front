@@ -1,41 +1,107 @@
-<div class="gantt-wrapper bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-  <!-- Header -->
-  <div class="header bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-    <div>
-      <h2 class="text-2xl font-bold text-gray-800">{{ ganttData?.project?.name || 'Project Gantt Chart' }}</h2>
-      <p class="text-gray-600 mt-1">{{ ganttData?.project?.description }}</p>
-    </div>
-    <div class="flex flex-wrap items-center gap-3">
-      <select [(ngModel)]="viewMode" (change)="changeViewMode(viewMode)"
-        class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
-        <option *ngFor="let mode of viewModes" [value]="mode">{{ mode }}</option>
-      </select>
+<div class="flex h-screen bg-gray-50">
+  <!-- Sidepanel Component -->
+  <app-sidepanel 
+    [isSidebarOpen]="isSidebarOpen">
+  </app-sidepanel>
 
-      <button (click)="addNewTask()" class="btn-primary">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-        </svg>
-        Add Task
-      </button>
+  <!-- Main Content Area -->
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <!-- Navbar Component -->
+    <app-navbar 
+      [componentName]="'Gantt Chart'" 
+      (toggleSidebar)="toggleSidebar()">
+    </app-navbar>
 
-      <button (click)="loadGanttData()" [disabled]="loading" class="btn-secondary">
-        Refresh
-      </button>
-    </div>
-  </div>
+    <!-- Main Content -->
+    <main class="flex-1 overflow-auto px-2 py-4">
+      <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+          <p class="text-gray-600 text-2xl font-bold mt-2">Track project timelines and milestones</p>
+        </div>
 
-  <!-- Status Legend -->
-  <div class="legend flex flex-wrap gap-4 px-6 py-3 border-b border-gray-200 text-sm">
-    <div class="flex items-center gap-1"><span class="status-dot status-done"></span> Done</div>
-    <div class="flex items-center gap-1"><span class="status-dot status-review"></span> Review</div>
-    <div class="flex items-center gap-1"><span class="status-dot status-in-progress"></span> In Progress</div>
-    <div class="flex items-center gap-1"><span class="status-dot status-todo"></span> To Do</div>
-    <div class="flex items-center gap-1"><span class="status-dot status-blocked"></span> Blocked</div>
-  </div>
+        <!-- Gantt Chart Component -->
+        <div class="gantt-modern-wrapper bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+          <!-- Header -->
+          <div class="header bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-5 border-b border-gray-100 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <div class="p-2 bg-white rounded-lg shadow-sm border border-gray-100">
+                <svg class="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-xl font-bold text-gray-800">{{ ganttData?.project?.name || 'Project Gantt Chart' }}</h2>
+                <p class="text-gray-600 text-sm mt-1">{{ ganttData?.project?.description }}</p>
+              </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="relative">
+                <select [(ngModel)]="viewMode" (change)="changeViewMode(viewMode)"
+                  class="pl-9 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white shadow-sm appearance-none cursor-pointer">
+                  <option *ngFor="let mode of viewModes" [value]="mode">{{ mode }}</option>
+                </select>
+                <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+              </div>
 
-  <!-- Gantt Chart -->
-  <div #ganttContainer id="ganttContainer" class="gantt-chart h-[400px] overflow-x-auto">
-    <p *ngIf="loading" class="text-center py-16 text-gray-500">Loading tasks...</p>
-    <p *ngIf="error" class="text-center py-16 text-red-500">{{ error }}</p>
+              <button (click)="addNewTask()" class="btn-primary flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Add Task
+              </button>
+
+              <button (click)="loadGanttData()" [disabled]="loading" class="btn-secondary flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" [class.animate-spin]="loading">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                {{ loading ? 'Refreshing...' : 'Refresh' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Status Legend -->
+          <div class="legend flex flex-wrap gap-4 px-6 py-3 border-b border-gray-100 text-sm bg-gray-50">
+            <div class="flex items-center gap-2">
+              <span class="status-dot status-done rounded-full"></span>
+              <span class="text-gray-700">Done</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="status-dot status-review rounded-full"></span>
+              <span class="text-gray-700">Review</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="status-dot status-in-progress rounded-full"></span>
+              <span class="text-gray-700">In Progress</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="status-dot status-todo rounded-full"></span>
+              <span class="text-gray-700">To Do</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="status-dot status-blocked rounded-full"></span>
+              <span class="text-gray-700">Blocked</span>
+            </div>
+          </div>
+
+          <!-- Gantt Chart -->
+          <div #ganttContainer id="ganttContainer" class="gantt-chart h-[500px] overflow-x-auto bg-gradient-to-b from-gray-50 to-white">
+            <div *ngIf="loading" class="flex flex-col items-center justify-center h-full">
+              <div class="loader animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mb-4"></div>
+              <p class="text-gray-500">Loading tasks...</p>
+            </div>
+            <div *ngIf="error" class="flex flex-col items-center justify-center h-full">
+              <svg class="w-16 h-16 text-red-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <p class="text-red-500 font-medium">{{ error }}</p>
+              <button (click)="loadGanttData()" class="mt-4 btn-primary">Try Again</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
   </div>
 </div>

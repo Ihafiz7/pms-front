@@ -15,7 +15,8 @@ export class FileManagerComponentComponent implements OnInit {
   filteredFiles: FileAttachment[] = [];
   isLoading = false;
   searchTerm = '';
-  currentView: 'grid' | 'list' = 'grid';
+  currentView: 'grid' | 'list' = 'list';
+  isSidebarOpen = false;
   
   // Modals
   showUploadModal = false;
@@ -71,7 +72,6 @@ export class FileManagerComponentComponent implements OnInit {
     }
   }
 
-  // ADD THESE MISSING MODAL METHODS
   closeUploadModal(): void {
     this.showUploadModal = false;
   }
@@ -102,7 +102,6 @@ export class FileManagerComponentComponent implements OnInit {
   }
 
   loadStorageStats(): void {
-    // Load total storage
     this.fileService.getTotalStorageUsed().subscribe({
       next: (total) => {
         this.totalStorage = total;
@@ -113,7 +112,6 @@ export class FileManagerComponentComponent implements OnInit {
       }
     });
     
-    // Load user storage - only if we have a valid user ID
     if (this.currentUserId) {
       this.fileService.getStorageUsedByUser(this.currentUserId).subscribe({
         next: (userTotal) => {
@@ -149,7 +147,7 @@ export class FileManagerComponentComponent implements OnInit {
   onFileUploaded(): void {
     this.loadFiles();
     this.loadStorageStats();
-    this.closeUploadModal(); // Now this method exists
+    this.closeUploadModal(); 
   }
 
   openFileDetails(file: FileAttachment): void {
@@ -189,11 +187,11 @@ export class FileManagerComponentComponent implements OnInit {
         next: () => {
           this.loadFiles();
           this.loadStorageStats();
-          this.closeDeleteModal(); // Now this method exists
+          this.closeDeleteModal(); 
         },
         error: (error) => {
           console.error('Error deleting file:', error);
-          this.closeDeleteModal(); // Now this method exists
+          this.closeDeleteModal(); 
         }
       });
     }
@@ -251,5 +249,9 @@ export class FileManagerComponentComponent implements OnInit {
       return false;
     }
     return true;
+  }
+
+  toggleSidebar(): void {
+    this.isSidebarOpen = !this.isSidebarOpen;
   }
 }

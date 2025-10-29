@@ -17,6 +17,7 @@ export class ExpenseComponent implements OnInit {
   loading = false;
   error = '';
   savingExpense = false;
+  isSidebarOpen = false;
 
   // Modal control
   showExpenseModal = false;
@@ -124,6 +125,9 @@ export class ExpenseComponent implements OnInit {
     const expenseCategories = [...new Set(expenses.map(expense => expense.category).filter(Boolean))];
     this.categories = [...new Set([...this.commonCategories, ...expenseCategories])].sort();
     console.log('Available categories:', this.categories);
+  }
+  toggleSidebar(): void {
+    this.isSidebarOpen = !this.isSidebarOpen;
   }
 
   loadProjects() {
