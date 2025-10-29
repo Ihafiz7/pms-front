@@ -10,12 +10,12 @@ import { ExpenseStatus, Expense } from '../models/expense.model';
 })
 export class ExpenseReportService {
 
-  private baseUrl = `${environment.apiUrl}/expenses/reports`;
+  private baseUrl = `${environment.apiUrl}`;
 
   constructor(private http: HttpClient) { }
 
   getExpensesPerProject(): Observable<ExpenseProjectReport[]> {
-    return this.http.get<ExpenseProjectReport[]>(`${this.baseUrl}/project-expenses`);
+    return this.http.get<ExpenseProjectReport[]>(`${this.baseUrl}/expenses/project-summary`);
   }
 
   getFilteredExpensesPerProject(
@@ -47,7 +47,7 @@ export class ExpenseReportService {
     if (endDate) params = params.set('endDate', endDate);
     if (status) params = params.set('status', status);
 
-    return this.http.get(`${this.baseUrl}/export/project-expenses`, {
+    return this.http.get(`${this.baseUrl}/reports/export/project-expenses`, {
       params,
       responseType: 'blob'
     });

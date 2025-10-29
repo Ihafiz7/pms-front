@@ -12,6 +12,7 @@ import { ExpenseComponent } from './components/expense/expense.component';
 import { FileManagerComponentComponent } from './components/file-manager-component/file-manager-component.component';
 import { ResourceAllocationComponent } from './components/resource-allocation/resource-allocation.component';
 import { ExpenseReportComponent } from './components/expense-report/expense-report.component';
+import { MilestoneComponent } from './components/milestone/milestone.component';
 
 const routes: Routes = [
   { path: '',redirectTo: '/login', pathMatch: 'full'},
@@ -26,6 +27,7 @@ const routes: Routes = [
   { path: 'gantt', component: GanttChartComponent},
   { path: 'resource', component: ResourceAllocationComponent},
   { path: 'report', component: ExpenseReportComponent},
+  { path: 'milestone', component: MilestoneComponent},
   { path: '**',redirectTo: '/login'}
 
 ];

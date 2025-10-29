@@ -26,6 +26,8 @@ import { ConfirmDeleteComponent } from './components/confirm-delete/confirm-dele
 import { FileDetailsComponent } from './components/file-details/file-details.component';
 import { ExpenseReportComponent } from './components/expense-report/expense-report.component';
 import { ResourceAllocationComponent } from './components/resource-allocation/resource-allocation.component';
+import { MilestoneComponent } from './components/milestone/milestone.component';
+import { NotifiactionComponent } from './components/notifiaction/notifiaction.component';
 
 
 @NgModule({
@@ -48,7 +50,9 @@ import { ResourceAllocationComponent } from './components/resource-allocation/re
     ConfirmDeleteComponent,
     FileDetailsComponent,
     ExpenseReportComponent,
-    ResourceAllocationComponent
+    ResourceAllocationComponent,
+    MilestoneComponent,
+    NotifiactionComponent
   ],
   imports: [
     BrowserModule,

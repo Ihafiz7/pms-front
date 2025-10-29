@@ -1,0 +1,146 @@
+<!-- notification.component.html -->
+<div class="notification-container relative">
+  <!-- Notification Bell -->
+  <button 
+    (click)="toggleDropdown()"
+    class="relative flex items-center justify-center w-10 h-10 text-gray-600 hover:text-orange-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-opacity-50 rounded-full hover:bg-gray-100"
+    [class.text-orange-600]="isOpen"
+    [class.bg-gray-100]="isOpen"
+    [attr.aria-label]="'Notifications (' + unreadCount + ' unread)'"
+  >
+    <!-- Bell Icon -->
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6.002 6.002 0 0 0-4-5.659V5a2 2 0 1 0-4 0v.341C7.67 6.165 7 7.388 7 9v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m4 0v1a3 3 0 1 1-6 0v-1m6 0H9" />
+    </svg>
+    
+    <!-- Unread Count Badge -->
+    <span *ngIf="unreadCount > 0" class="absolute -top-1 -right-1 flex items-center justify-center min-w-5 h-5 px-1 bg-orange-600 text-white text-xs font-bold rounded-full border-2 border-white shadow-sm">
+      {{ unreadCount > 99 ? '99+' : unreadCount }}
+    </span>
+
+    <!-- Connection Status Indicator -->
+    <div class="absolute -bottom-1 -right-1 w-2 h-2 rounded-full border border-white shadow-sm"
+         [class.bg-green-500]="isConnected"
+         [class.bg-red-500]="!isConnected"
+         [title]="isConnected ? 'Connected' : 'Disconnected'">
+    </div>
+  </button>
+
+  <!-- Dropdown Panel -->
+  <div *ngIf="isOpen"
+    class="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-hidden animate-in fade-in-50 slide-in-from-top-2">
+    
+    <!-- Header -->
+    <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50 rounded-t-lg">
+      <div>
+        <h3 class="text-lg font-semibold text-gray-800">Notifications</h3>
+        <p *ngIf="unreadCount > 0" class="text-sm text-gray-600 mt-1">{{ unreadCount }} unread</p>
+      </div>
+      <div class="flex items-center space-x-2">
+        <button *ngIf="unreadCount > 0"
+          (click)="markAllAsRead()"
+          class="text-sm text-orange-600 hover:text-orange-700 font-medium px-3 py-1 rounded-md hover:bg-orange-50 transition-colors duration-200 border border-orange-200"
+        >
+          Mark all read
+        </button>
+        <button 
+          (click)="refreshNotifications()"
+          class="flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-700 rounded-md hover:bg-gray-200 transition-colors duration-200"
+          [class.animate-spin]="isLoading"
+          [disabled]="isLoading"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Notifications List -->
+    <div class="overflow-y-auto max-h-80 bg-white notification-scrollbar">
+      
+      <!-- Loading State -->
+      <div *ngIf="isLoading" class="flex flex-col items-center justify-center py-8 px-4">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mb-3"></div>
+        <p class="text-gray-500 text-sm">Loading notifications...</p>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="!isLoading && notifications.length === 0" class="text-center py-8 px-4">
+        <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 7 7.388 7 9v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m4 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+        </div>
+        <p class="text-gray-500 text-sm font-medium">No notifications yet</p>
+        <p class="text-gray-400 text-xs mt-1">We'll notify you when something arrives</p>
+      </div>
+
+      <!-- Notifications -->
+      <div *ngIf="!isLoading && notifications.length > 0" class="divide-y divide-gray-100">
+        <div *ngFor="let notification of notifications" 
+          class="p-4 hover:bg-gray-50 transition-colors duration-200 cursor-pointer group relative border-l-4"
+          [class.bg-orange-50]="!notification.isRead"
+          [class.border-l-orange-500]="!notification.isRead"
+          [class.border-l-transparent]="notification.isRead"
+          (click)="markAsRead(notification, $event)">
+          
+          <!-- Unread Indicator -->
+          <div *ngIf="!notification.isRead" class="absolute left-3 top-4 w-2 h-2 bg-orange-500 rounded-full"></div>
+
+          <div class="flex items-start space-x-3" [class.ml-2]="!notification.isRead">
+            <!-- Icon -->
+            <div class="flex-shrink-0">
+              <div class="w-10 h-10 rounded-full border-2 flex items-center justify-center transition-colors duration-200"
+                   [class]="getPriorityColor(notification.priority)">
+                <i [class]="getNotificationIcon(notification.type) + ' text-sm'"></i>
+              </div>
+            </div>
+
+            <!-- Content -->
+            <div class="flex-1 min-w-0">
+              <div class="flex items-start justify-between mb-1">
+                <p class="text-sm font-semibold text-gray-900 truncate">{{ notification.title }}</p>
+                <button 
+                  (click)="deleteNotification(notification, $event)"
+                  class="opacity-0 group-hover:opacity-100 flex-shrink-0 p-1 text-gray-400 hover:text-red-500 rounded-md hover:bg-red-50 transition-all duration-200 ml-2"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <p class="text-sm text-gray-600 mb-2 line-clamp-2">{{ notification.message }}</p>
+              
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-gray-500 font-medium">{{ notification.timeAgo }}</span>
+                
+                <div class="flex items-center space-x-2">
+                  <span *ngIf="notification.priority === 'HIGH'" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 border border-red-200">
+                    High
+                  </span>
+                  <span *ngIf="notification.actionUrl" class="text-xs text-orange-600 font-medium">View →</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div *ngIf="!isLoading && notifications.length > 0" class="px-4 py-3 border-t border-gray-200 bg-gray-50 rounded-b-lg">
+      <div class="flex items-center justify-between text-xs text-gray-500">
+        <div class="flex items-center space-x-2">
+          <div class="w-2 h-2 rounded-full" 
+               [class.bg-green-500]="isConnected"
+               [class.bg-red-500]="!isConnected"></div>
+          <span>{{ isConnected ? 'Live' : 'Offline' }}</span>
+        </div>
+        <span>{{ notifications.length }} notification{{ notifications.length !== 1 ? 's' : '' }}</span>
+      </div>
+    </div>
+  </div>
+</div>
