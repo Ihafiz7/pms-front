@@ -20,7 +20,7 @@ interface GanttChartTask {
   styleUrls: ['./gantt-chart.component.scss']
 })
 export class GanttChartComponent implements OnInit, OnChanges {
-  @Input() projectId: number = 3;
+  @Input() projectId: number = 1;
   @Input() viewMode: string = 'Month';
   @Output() taskSelected = new EventEmitter<GanttTask>();
   @ViewChild('ganttContainer') ganttContainer!: ElementRef;

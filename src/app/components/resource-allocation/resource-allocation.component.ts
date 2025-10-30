@@ -275,4 +275,35 @@ export class ResourceAllocationComponent implements OnInit {
     }
     return '';
   }
+
+  isSidebarOpen: boolean = false;
+
+
+  toggleSidebar(): void {
+    this.isSidebarOpen = !this.isSidebarOpen;
+  }
+
+    // Statistics properties
+  totalAllocations: number = 0;
+  activeAllocations: number = 0;
+  averageAllocation: number = 0;
+  utilizationRate: number = 0;
+   calculateStatistics(): void {
+    this.totalAllocations = this.allocations.length;
+    this.activeAllocations = this.allocations.filter(a => a.isActive).length;
+    
+    if (this.allocations.length > 0) {
+      this.averageAllocation = Math.round(
+        this.allocations.reduce((sum, a) => sum + a.allocationPercentage, 0) / this.allocations.length
+      );
+      
+      this.utilizationRate = Math.round(
+        (this.activeAllocations / this.totalAllocations) * 100
+      );
+    }
+  }
+
+  onAllocationsChange(): void {
+    this.calculateStatistics();
+  }
 }

@@ -25,7 +25,7 @@ export class MilestoneComponent implements OnInit {
   searchTerm = '';
   statusFilter = '';
   projectFilter = '';
-  viewMode: ViewMode = 'grid';
+  viewMode: ViewMode = 'list';
 
   milestoneForm: FormGroup;
   statusOptions = Object.values(MilestoneStatus);
@@ -225,20 +225,20 @@ export class MilestoneComponent implements OnInit {
     });
   }
 
-  getStatusBadgeClass(status: MilestoneStatus): string {
-    const baseClasses = 'px-2 py-1 rounded-full text-xs font-semibold';
+  // getStatusBadgeClass(status: MilestoneStatus): string {
+  //   const baseClasses = 'px-2 py-1 rounded-full text-xs font-semibold';
     
-    switch (status) {
-      case MilestoneStatus.ACHIEVED:
-        return `${baseClasses} bg-green-100 text-green-800`;
-      case MilestoneStatus.DELAYED:
-        return `${baseClasses} bg-red-100 text-red-800`;
-      case MilestoneStatus.CANCELLED:
-        return `${baseClasses} bg-gray-100 text-gray-800`;
-      default:
-        return `${baseClasses} bg-yellow-100 text-yellow-800`;
-    }
-  }
+  //   switch (status) {
+  //     case MilestoneStatus.ACHIEVED:
+  //       return `${baseClasses} bg-green-100 text-green-800`;
+  //     case MilestoneStatus.DELAYED:
+  //       return `${baseClasses} bg-red-100 text-red-800`;
+  //     case MilestoneStatus.CANCELLED:
+  //       return `${baseClasses} bg-gray-100 text-gray-800`;
+  //     default:
+  //       return `${baseClasses} bg-yellow-100 text-yellow-800`;
+  //   }
+  // }
 
   getPriorityBadgeClass(isCritical: boolean): string {
     return isCritical 
@@ -262,5 +262,50 @@ export class MilestoneComponent implements OnInit {
     if (days <= 3) return 'text-orange-600 bg-orange-50';
     if (days <= 7) return 'text-yellow-600 bg-yellow-50';
     return 'text-green-600 bg-green-50';
+  }
+
+  isSidebarOpen: boolean = false;
+  
+  // Statistics properties
+  totalMilestones: number = 0;
+  achievedMilestones: number = 0;
+  criticalMilestones: number = 0;
+  overdueMilestones: number = 0;
+
+  // ... your existing properties ...
+
+  toggleSidebar(): void {
+    this.isSidebarOpen = !this.isSidebarOpen;
+  }
+
+  // Method to calculate statistics
+  calculateStatistics(): void {
+    this.totalMilestones = this.milestones.length;
+    this.achievedMilestones = this.milestones.filter(m => m.status === 'ACHIEVED').length;
+    this.criticalMilestones = this.milestones.filter(m => m.isCritical).length;
+    this.overdueMilestones = this.milestones.filter(m => this.isOverdue(m)).length;
+  }
+
+  // Call this method when milestones data changes
+  onMilestonesChange(): void {
+    this.calculateStatistics();
+  }
+
+  // Update the getStatusBadgeClass method to use orange colors
+  getStatusBadgeClass(status: string): string {
+    const baseClasses = 'inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium';
+    
+    switch (status) {
+      case 'ACHIEVED':
+        return `${baseClasses} bg-green-100 text-green-800`;
+      case 'PENDING':
+        return `${baseClasses} bg-orange-100 text-orange-800`;
+      case 'DELAYED':
+        return `${baseClasses} bg-red-100 text-red-800`;
+      case 'CANCELLED':
+        return `${baseClasses} bg-gray-100 text-gray-800`;
+      default:
+        return `${baseClasses} bg-gray-100 text-gray-800`;
+    }
   }
 }

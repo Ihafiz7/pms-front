@@ -1,437 +1,486 @@
-<div class="container mx-auto px-4 py-8">
-  <!-- Header -->
-  <div class="mb-8">
-    <h1 class="text-3xl font-bold text-gray-900">Milestone Management</h1>
-    <p class="text-gray-600 mt-2">Track and manage project milestones</p>
-  </div>
+<!-- src/app/components/milestone-management/milestone-management.component.html -->
+<div class="flex h-screen bg-gray-50">
+  <!-- Sidepanel Component -->
+  <app-sidepanel 
+    [isSidebarOpen]="isSidebarOpen">
+  </app-sidepanel>
 
-  <!-- Filters and Actions -->
-  <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-    <div class="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
-      <!-- Search -->
-      <div class="flex-1 w-full lg:w-auto">
-        <input
-          type="text"
-          placeholder="Search milestones..."
-          [(ngModel)]="searchTerm"
-          (input)="applyFilters()"
-          class="w-full lg:w-64 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        >
-      </div>
+  <!-- Main Content Area -->
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <!-- Navbar Component -->
+    <app-navbar 
+      [componentName]="'Milestone Management'" 
+      (toggleSidebar)="toggleSidebar()">
+    </app-navbar>
 
-      <!-- Filters and View Toggle -->
-      <div class="flex flex-wrap gap-4 items-center">
-        <!-- Status Filter -->
-        <select
-          [(ngModel)]="statusFilter"
-          (change)="applyFilters()"
-          class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        >
-          <option value="">All Status</option>
-          <option value="PENDING">Pending</option>
-          <option value="ACHIEVED">Achieved</option>
-          <option value="DELAYED">Delayed</option>
-          <option value="CANCELLED">Cancelled</option>
-        </select>
-
-        <!-- Project Filter -->
-        <select
-          [(ngModel)]="projectFilter"
-          (change)="applyFilters()"
-          class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        >
-          <option value="">All Projects</option>
-          <option *ngFor="let project of projects" [value]="project.projectId">
-            {{ project.name }}
-          </option>
-        </select>
-
-        <!-- View Mode Toggle -->
-        <div class="flex border border-gray-300 rounded-lg overflow-hidden">
-          <button
-            (click)="setViewMode('grid')"
-            [class]="viewMode === 'grid' 
-              ? 'bg-blue-600 text-white' 
-              : 'bg-white text-gray-700 hover:bg-gray-50'"
-            class="p-2 transition-colors duration-200"
-            title="Grid View"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
-            </svg>
-          </button>
-          <button
-            (click)="setViewMode('list')"
-            [class]="viewMode === 'list' 
-              ? 'bg-blue-600 text-white' 
-              : 'bg-white text-gray-700 hover:bg-gray-50'"
-            class="p-2 transition-colors duration-200"
-            title="List View"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <!-- Create Button -->
-      <button
-        (click)="onCreate()"
-        [disabled]="projects.length === 0"
-        class="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-lg font-semibold transition-colors duration-200 flex items-center gap-2"
-      >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-        </svg>
-        Create Milestone
-      </button>
-    </div>
-
-    <!-- No Projects Warning -->
-    <div *ngIf="projects.length === 0 && !projectsLoading" class="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-      <div class="flex items-center">
-        <svg class="w-5 h-5 text-yellow-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-        </svg>
-        <span class="text-yellow-800">No projects found. Please create a project first to add milestones.</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Milestone Form -->
-  <div *ngIf="showForm" class="bg-white rounded-lg shadow-md p-6 mb-6">
-    <h2 class="text-xl font-semibold mb-4">
-      {{ isEditing ? 'Edit Milestone' : 'Create New Milestone' }}
-    </h2>
-    
-    <form [formGroup]="milestoneForm" (ngSubmit)="onSubmit()" class="space-y-4">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Name -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Name *</label>
-          <input
-            type="text"
-            formControlName="name"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Enter milestone name"
-          >
-          <div *ngIf="milestoneForm.get('name')?.invalid && milestoneForm.get('name')?.touched" class="text-red-500 text-sm mt-1">
-            Name is required and must be less than 255 characters
-          </div>
-        </div>
-
-        <!-- Due Date -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Due Date *</label>
-          <input
-            type="date"
-            formControlName="dueDate"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-        </div>
-
-        <!-- Project Selection -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Project *</label>
-          <select
-            formControlName="projectId"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="">Select a Project</option>
-            <option *ngFor="let project of projects" [value]="project.projectId">
-              {{ project.name }}
-            </option>
-          </select>
-          <div *ngIf="milestoneForm.get('projectId')?.invalid && milestoneForm.get('projectId')?.touched" class="text-red-500 text-sm mt-1">
-            Project selection is required
-          </div>
-        </div>
-
-        <!-- Status -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-          <select
-            formControlName="status"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option *ngFor="let status of statusOptions" [value]="status">
-              {{ status }}
-            </option>
-          </select>
-        </div>
-
-        <!-- Critical Milestone -->
-        <div class="flex items-center">
-          <input
-            type="checkbox"
-            formControlName="isCritical"
-            class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-          >
-          <label class="ml-2 text-sm font-medium text-gray-700">Critical Milestone</label>
-        </div>
-
-        <!-- Achieved Date -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Achieved Date</label>
-          <input
-            type="date"
-            formControlName="achievedDate"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-        </div>
-      </div>
-
-      <!-- Description -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
-        <textarea
-          formControlName="description"
-          rows="3"
-          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          placeholder="Enter milestone description"
-        ></textarea>
-      </div>
-
-      <!-- Form Actions -->
-      <div class="flex gap-3 pt-4">
-        <button
-          type="submit"
-          [disabled]="milestoneForm.invalid"
-          class="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-lg font-semibold transition-colors duration-200"
-        >
-          {{ isEditing ? 'Update' : 'Create' }} Milestone
-        </button>
-        <button
-          type="button"
-          (click)="resetForm()"
-          class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-semibold transition-colors duration-200"
-        >
-          Cancel
-        </button>
-      </div>
-    </form>
-  </div>
-
-  <!-- Loading State -->
-  <div *ngIf="loading" class="flex justify-center items-center py-12">
-    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-  </div>
-
-  <!-- Projects Loading State -->
-  <div *ngIf="projectsLoading" class="bg-white rounded-lg shadow-md p-6 mb-6">
-    <div class="flex items-center justify-center py-4">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mr-3"></div>
-      <span class="text-gray-600">Loading projects...</span>
-    </div>
-  </div>
-
-  <!-- GRID VIEW -->
-  <div *ngIf="!loading && viewMode === 'grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    <div
-      *ngFor="let milestone of filteredMilestones"
-      class="bg-white rounded-lg shadow-md border-l-4 hover:shadow-lg transition-shadow duration-200"
-      [class.border-red-500]="milestone.isCritical"
-      [class.border-blue-500]="!milestone.isCritical"
-      [class.ring-2]="isOverdue(milestone)"
-      [class.ring-red-300]="isOverdue(milestone)"
-    >
-      <div class="p-6">
+    <!-- Main Content -->
+    <main class="flex-1 overflow-auto px-2 py-4">
+      <div class="max-w-7xl mx-auto">
         <!-- Header -->
-        <div class="flex justify-between items-start mb-4">
-          <h3 class="text-lg font-semibold text-gray-900 truncate">{{ milestone.name }}</h3>
-          <div class="flex gap-1">
-            <span [class]="getStatusBadgeClass(milestone.status)">
-              {{ milestone.status }}
-            </span>
-            <span *ngIf="milestone.isCritical" [class]="getPriorityBadgeClass(milestone.isCritical)">
-              Critical
-            </span>
+        <div class="mb-8">
+          <h1 class="text-2xl font-bold text-gray-900">Milestone Management</h1>
+          <p class="text-gray-600 mt-2">Track and manage project milestones</p>
+
+          <!-- Statistics Cards -->
+          <div class="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <!-- Total Milestones -->
+            <div class="bg-white p-4 rounded-lg border border-gray-200">
+              <div class="text-sm font-medium text-gray-500">Total Milestones</div>
+              <div class="text-2xl font-bold text-gray-900">{{ totalMilestones }}</div>
+            </div>
+
+            <!-- Achieved Milestones -->
+            <div class="bg-white p-4 rounded-lg border border-gray-200">
+              <div class="text-sm font-medium text-gray-500">Achieved</div>
+              <div class="text-2xl font-bold text-green-600">{{ achievedMilestones }}</div>
+            </div>
+
+            <!-- Critical Milestones -->
+            <div class="bg-white p-4 rounded-lg border border-gray-200">
+              <div class="text-sm font-medium text-gray-500">Critical</div>
+              <div class="text-2xl font-bold text-red-600">{{ criticalMilestones }}</div>
+            </div>
+
+            <!-- Overdue Milestones -->
+            <div class="bg-white p-4 rounded-lg border border-gray-200">
+              <div class="text-sm font-medium text-gray-500">Overdue</div>
+              <div class="text-2xl font-bold text-orange-600">{{ overdueMilestones }}</div>
+            </div>
           </div>
         </div>
 
-        <!-- Description -->
-        <p *ngIf="milestone.description" class="text-gray-600 text-sm mb-4 line-clamp-2">
-          {{ milestone.description }}
-        </p>
+        <!-- Filters and Actions -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <div class="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
+            <!-- Search -->
+            <div class="flex-1 w-full lg:w-auto">
+              <input
+                type="text"
+                placeholder="Search milestones..."
+                [(ngModel)]="searchTerm"
+                (input)="applyFilters()"
+                class="w-full lg:w-64 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
+              >
+            </div>
 
-        <!-- Project Info -->
-        <div class="flex items-center text-sm text-gray-500 mb-3">
-          <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-          </svg>
-          {{ getProjectName(milestone.projectId) }}
-        </div>
+            <!-- Filters and View Toggle -->
+            <div class="flex flex-wrap gap-4 items-center">
+              <!-- Status Filter -->
+              <select
+                [(ngModel)]="statusFilter"
+                (change)="applyFilters()"
+                class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
+              >
+                <option value="">All Status</option>
+                <option value="PENDING">Pending</option>
+                <option value="ACHIEVED">Achieved</option>
+                <option value="DELAYED">Delayed</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
 
-        <!-- Dates -->
-        <div class="space-y-2 text-sm">
-          <div class="flex justify-between">
-            <span class="text-gray-500">Due Date:</span>
-            <span class="font-medium" [class.text-red-600]="isOverdue(milestone)">
-              {{ milestone.dueDate | date }}
-            </span>
-          </div>
-          <div *ngIf="milestone.achievedDate" class="flex justify-between">
-            <span class="text-gray-500">Achieved:</span>
-            <span class="font-medium text-green-600">{{ milestone.achievedDate | date }}</span>
-          </div>
-        </div>
+              <!-- Project Filter -->
+              <select
+                [(ngModel)]="projectFilter"
+                (change)="applyFilters()"
+                class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
+              >
+                <option value="">All Projects</option>
+                <option *ngFor="let project of projects" [value]="project.projectId">
+                  {{ project.name }}
+                </option>
+              </select>
 
-        <!-- Actions -->
-        <div class="flex gap-2 mt-6 pt-4 border-t border-gray-200">
-          <button
-            *ngIf="milestone.status !== 'ACHIEVED'"
-            (click)="onAchieve(milestone)"
-            class="flex-1 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm font-medium transition-colors duration-200"
-          >
-            Mark Achieved
-          </button>
-          <button
-            (click)="onEdit(milestone)"
-            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm font-medium transition-colors duration-200"
-          >
-            Edit
-          </button>
-          <button
-            (click)="onDelete(milestone.milestoneId)"
-            class="flex-1 bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded text-sm font-medium transition-colors duration-200"
-          >
-            Delete
-          </button>
-        </div>
-
-        <!-- Overdue Warning -->
-        <div *ngIf="isOverdue(milestone)" class="mt-3 p-2 bg-red-50 border border-red-200 rounded text-red-700 text-xs">
-          <div class="flex items-center">
-            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-            </svg>
-            This milestone is overdue
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- LIST VIEW -->
-  <div *ngIf="!loading && viewMode === 'list'" class="bg-white rounded-lg shadow-md overflow-hidden">
-    <table class="min-w-full divide-y divide-gray-200">
-      <thead class="bg-gray-50">
-        <tr>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Milestone</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Left</th>
-          <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-        </tr>
-      </thead>
-      <tbody class="bg-white divide-y divide-gray-200">
-        <tr 
-          *ngFor="let milestone of filteredMilestones"
-          [class.bg-red-50]="isOverdue(milestone)"
-          class="hover:bg-gray-50 transition-colors duration-150"
-        >
-          <td class="px-6 py-4 whitespace-nowrap">
-            <div class="flex items-center">
-              <div class="flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-lg"
-                   [class]="milestone.isCritical ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
+              <!-- View Mode Toggle -->
+              <div class="flex border border-gray-300 rounded-lg overflow-hidden">
+                <button
+                  (click)="setViewMode('grid')"
+                  [class]="viewMode === 'grid' 
+                    ? 'bg-orange-500 text-white' 
+                    : 'bg-white text-gray-700 hover:bg-gray-50'"
+                  class="p-2 transition-colors duration-200"
+                  title="Grid View"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                  </svg>
+                </button>
+                <button
+                  (click)="setViewMode('list')"
+                  [class]="viewMode === 'list' 
+                    ? 'bg-orange-500 text-white' 
+                    : 'bg-white text-gray-700 hover:bg-gray-50'"
+                  class="p-2 transition-colors duration-200"
+                  title="List View"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+                  </svg>
+                </button>
               </div>
-              <div class="ml-4">
-                <div class="text-sm font-medium text-gray-900">{{ milestone.name }}</div>
-                <div *ngIf="milestone.description" class="text-sm text-gray-500 truncate max-w-xs">
-                  {{ milestone.description }}
+            </div>
+
+            <!-- Create Button -->
+            <button
+              (click)="onCreate()"
+              [disabled]="projects.length === 0"
+              class="bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white px-6 py-2 rounded-lg font-semibold transition-colors duration-200 flex items-center gap-2"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+              </svg>
+              Create Milestone
+            </button>
+          </div>
+
+          <!-- No Projects Warning -->
+          <div *ngIf="projects.length === 0 && !projectsLoading" class="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div class="flex items-center">
+              <svg class="w-5 h-5 text-yellow-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+              </svg>
+              <span class="text-yellow-800">No projects found. Please create a project first to add milestones.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Milestone Form -->
+        <div *ngIf="showForm" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <h2 class="text-xl font-semibold mb-4">
+            {{ isEditing ? 'Edit Milestone' : 'Create New Milestone' }}
+          </h2>
+          
+          <form [formGroup]="milestoneForm" (ngSubmit)="onSubmit()" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- Name -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Name *</label>
+                <input
+                  type="text"
+                  formControlName="name"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
+                  placeholder="Enter milestone name"
+                >
+                <div *ngIf="milestoneForm.get('name')?.invalid && milestoneForm.get('name')?.touched" class="text-red-500 text-sm mt-1">
+                  Name is required and must be less than 255 characters
+                </div>
+              </div>
+
+              <!-- Due Date -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Due Date *</label>
+                <input
+                  type="date"
+                  formControlName="dueDate"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
+                >
+              </div>
+
+              <!-- Project Selection -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Project *</label>
+                <select
+                  formControlName="projectId"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
+                >
+                  <option value="">Select a Project</option>
+                  <option *ngFor="let project of projects" [value]="project.projectId">
+                    {{ project.name }}
+                  </option>
+                </select>
+                <div *ngIf="milestoneForm.get('projectId')?.invalid && milestoneForm.get('projectId')?.touched" class="text-red-500 text-sm mt-1">
+                  Project selection is required
+                </div>
+              </div>
+
+              <!-- Status -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <select
+                  formControlName="status"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
+                >
+                  <option *ngFor="let status of statusOptions" [value]="status">
+                    {{ status }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Critical Milestone -->
+              <div class="flex items-center">
+                <input
+                  type="checkbox"
+                  formControlName="isCritical"
+                  class="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500 transition-all duration-200"
+                >
+                <label class="ml-2 text-sm font-medium text-gray-700">Critical Milestone</label>
+              </div>
+
+              <!-- Achieved Date -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Achieved Date</label>
+                <input
+                  type="date"
+                  formControlName="achievedDate"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
+                >
+              </div>
+            </div>
+
+            <!-- Description -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+              <textarea
+                formControlName="description"
+                rows="3"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
+                placeholder="Enter milestone description"
+              ></textarea>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex gap-3 pt-4">
+              <button
+                type="submit"
+                [disabled]="milestoneForm.invalid"
+                class="bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white px-6 py-2 rounded-lg font-semibold transition-colors duration-200"
+              >
+                {{ isEditing ? 'Update' : 'Create' }} Milestone
+              </button>
+              <button
+                type="button"
+                (click)="resetForm()"
+                class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-semibold transition-colors duration-200"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Loading State -->
+        <div *ngIf="loading" class="flex justify-center items-center py-12">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+        </div>
+
+        <!-- Projects Loading State -->
+        <div *ngIf="projectsLoading" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <div class="flex items-center justify-center py-4">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mr-3"></div>
+            <span class="text-gray-600">Loading projects...</span>
+          </div>
+        </div>
+
+        <!-- GRID VIEW -->
+        <div *ngIf="!loading && viewMode === 'grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div
+            *ngFor="let milestone of filteredMilestones"
+            class="bg-white rounded-lg shadow-sm border-l-4 border border-gray-200 hover:shadow-md transition-all duration-200"
+            [class.border-red-500]="milestone.isCritical"
+            [class.border-orange-500]="!milestone.isCritical"
+            [class.ring-2]="isOverdue(milestone)"
+            [class.ring-red-300]="isOverdue(milestone)"
+          >
+            <div class="p-6">
+              <!-- Header -->
+              <div class="flex justify-between items-start mb-4">
+                <h3 class="text-lg font-semibold text-gray-900 truncate">{{ milestone.name }}</h3>
+                <div class="flex gap-1">
+                  <span [class]="getStatusBadgeClass(milestone.status)">
+                    {{ milestone.status }}
+                  </span>
+                  <span *ngIf="milestone.isCritical" [class]="getPriorityBadgeClass(milestone.isCritical)">
+                    Critical
+                  </span>
+                </div>
+              </div>
+
+              <!-- Description -->
+              <p *ngIf="milestone.description" class="text-gray-600 text-sm mb-4 line-clamp-2">
+                {{ milestone.description }}
+              </p>
+
+              <!-- Project Info -->
+              <div class="flex items-center text-sm text-gray-500 mb-3">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                </svg>
+                {{ getProjectName(milestone.projectId) }}
+              </div>
+
+              <!-- Dates -->
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                  <span class="text-gray-500">Due Date:</span>
+                  <span class="font-medium" [class.text-red-600]="isOverdue(milestone)">
+                    {{ milestone.dueDate | date }}
+                  </span>
+                </div>
+                <div *ngIf="milestone.achievedDate" class="flex justify-between">
+                  <span class="text-gray-500">Achieved:</span>
+                  <span class="font-medium text-green-600">{{ milestone.achievedDate | date }}</span>
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div class="flex gap-2 mt-6 pt-4 border-t border-gray-200">
+                <button
+                  *ngIf="milestone.status !== 'ACHIEVED'"
+                  (click)="onAchieve(milestone)"
+                  class="flex-1 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
+                >
+                  Mark Achieved
+                </button>
+                <button
+                  (click)="onEdit(milestone)"
+                  class="flex-1 bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
+                >
+                  Edit
+                </button>
+                <button
+                  (click)="onDelete(milestone.milestoneId)"
+                  class="flex-1 bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
+                >
+                  Delete
+                </button>
+              </div>
+
+              <!-- Overdue Warning -->
+              <div *ngIf="isOverdue(milestone)" class="mt-3 p-2 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs">
+                <div class="flex items-center">
+                  <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                  </svg>
+                  This milestone is overdue
                 </div>
               </div>
             </div>
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap">
-            <div class="text-sm text-gray-900">{{ getProjectName(milestone.projectId) }}</div>
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap">
-            <div class="text-sm text-gray-900" [class.text-red-600]="isOverdue(milestone)">
-              {{ milestone.dueDate | date }}
-            </div>
-            <div *ngIf="milestone.achievedDate" class="text-sm text-green-600">
-              Achieved: {{ milestone.achievedDate | date }}
-            </div>
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap">
-            <span [class]="getStatusBadgeClass(milestone.status)">
-              {{ milestone.status }}
-            </span>
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap">
-            <span [class]="getPriorityBadgeClass(milestone.isCritical)">
-              {{ milestone.isCritical ? 'Critical' : 'Normal' }}
-            </span>
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap">
-            <span *ngIf="milestone.status !== 'ACHIEVED'" 
-                  class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
-                  [class]="getDaysRemainingClass(getDaysRemaining(milestone.dueDate))">
-              {{ getDaysRemaining(milestone.dueDate) }} days
-            </span>
-            <span *ngIf="milestone.status === 'ACHIEVED'" class="text-green-600 text-sm">Completed</span>
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-            <div class="flex justify-end gap-2">
-              <button
-                *ngIf="milestone.status !== 'ACHIEVED'"
-                (click)="onAchieve(milestone)"
-                class="text-green-600 hover:text-green-900 transition-colors duration-200"
-                title="Mark as Achieved"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-              </button>
-              <button
-                (click)="onEdit(milestone)"
-                class="text-blue-600 hover:text-blue-900 transition-colors duration-200"
-                title="Edit"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                </svg>
-              </button>
-              <button
-                (click)="onDelete(milestone.milestoneId)"
-                class="text-red-600 hover:text-red-900 transition-colors duration-200"
-                title="Delete"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                </svg>
-              </button>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+          </div>
+        </div>
 
-  <!-- Empty State -->
-  <div *ngIf="!loading && filteredMilestones.length === 0" class="text-center py-12">
-    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-    </svg>
-    <h3 class="mt-2 text-sm font-medium text-gray-900">No milestones found</h3>
-    <p class="mt-1 text-sm text-gray-500">
-      {{ searchTerm || statusFilter || projectFilter ? 'Try adjusting your filters' : 'Get started by creating a new milestone' }}
-    </p>
-    <div class="mt-6">
-      <button
-        (click)="onCreate()"
-        [disabled]="projects.length === 0"
-        class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-      >
-        Create Milestone
-      </button>
-    </div>
+        <!-- LIST VIEW -->
+        <div *ngIf="!loading && viewMode === 'list'" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Milestone</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Left</th>
+                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr 
+                  *ngFor="let milestone of filteredMilestones"
+                  [class.bg-red-50]="isOverdue(milestone)"
+                  class="hover:bg-gray-50 transition-colors duration-150"
+                >
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                      <div class="flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-lg"
+                          [class]="milestone.isCritical ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                      </div>
+                      <div class="ml-4">
+                        <div class="text-sm font-medium text-gray-900">{{ milestone.name }}</div>
+                        <div *ngIf="milestone.description" class="text-sm text-gray-500 truncate max-w-xs">
+                          {{ milestone.description }}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">{{ getProjectName(milestone.projectId) }}</div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900" [class.text-red-600]="isOverdue(milestone)">
+                      {{ milestone.dueDate | date }}
+                    </div>
+                    <div *ngIf="milestone.achievedDate" class="text-sm text-green-600">
+                      Achieved: {{ milestone.achievedDate | date }}
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span [class]="getStatusBadgeClass(milestone.status)">
+                      {{ milestone.status }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span [class]="getPriorityBadgeClass(milestone.isCritical)">
+                      {{ milestone.isCritical ? 'Critical' : 'Normal' }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span *ngIf="milestone.status !== 'ACHIEVED'" 
+                          class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                          [class]="getDaysRemainingClass(getDaysRemaining(milestone.dueDate))">
+                      {{ getDaysRemaining(milestone.dueDate) }} days
+                    </span>
+                    <span *ngIf="milestone.status === 'ACHIEVED'" class="text-green-600 text-sm">Completed</span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div class="flex justify-end gap-2">
+                      <button
+                        *ngIf="milestone.status !== 'ACHIEVED'"
+                        (click)="onAchieve(milestone)"
+                        class="text-green-600 hover:text-green-900 transition-colors duration-200"
+                        title="Mark as Achieved"
+                      >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                      </button>
+                      <button
+                        (click)="onEdit(milestone)"
+                        class="text-orange-600 hover:text-orange-900 transition-colors duration-200"
+                        title="Edit"
+                      >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                      </button>
+                      <button
+                        (click)="onDelete(milestone.milestoneId)"
+                        class="text-red-600 hover:text-red-900 transition-colors duration-200"
+                        title="Delete"
+                      >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Empty State -->
+        <div *ngIf="!loading && filteredMilestones.length === 0" class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">No milestones found</h3>
+          <p class="mt-1 text-sm text-gray-500">
+            {{ searchTerm || statusFilter || projectFilter ? 'Try adjusting your filters' : 'Get started by creating a new milestone' }}
+          </p>
+          <div class="mt-6">
+            <button
+              (click)="onCreate()"
+              [disabled]="projects.length === 0"
+              class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-all duration-200"
+            >
+              Create Milestone
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
   </div>
 </div>

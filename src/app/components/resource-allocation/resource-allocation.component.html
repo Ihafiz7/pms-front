@@ -1,335 +1,380 @@
-<div class="min-h-screen bg-gray-50 p-6">
-  <div class="max-w-7xl mx-auto">
-    <!-- Header -->
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900">Resource Allocation Management</h1>
-      <p class="text-gray-600 mt-2">Manage project allocations and resource utilization</p>
-    </div>
+<!-- src/app/components/resource-allocation/resource-allocation.component.html -->
+<div class="flex h-screen bg-gray-50">
+  <!-- Sidepanel Component -->
+  <app-sidepanel 
+    [isSidebarOpen]="isSidebarOpen">
+  </app-sidepanel>
 
-    <!-- Controls -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-      <div class="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
-        <div class="flex flex-col sm:flex-row gap-4 flex-1 w-full">
-          <!-- Search -->
-          <div class="flex-1">
-            <input
-              type="text"
-              placeholder="Search by user, project, or role..."
-              [(ngModel)]="searchTerm"
-              (input)="filterAllocations()"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-          </div>
-          
-          <!-- Status Filter -->
-          <div class="w-full sm:w-48">
-            <select
-              [(ngModel)]="statusFilter"
-              (change)="filterAllocations()"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="ALL">All Status</option>
-              <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
-            </select>
-          </div>
-        </div>
+  <!-- Main Content Area -->
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <!-- Navbar Component -->
+    <app-navbar 
+      [componentName]="'Resource Allocation'" 
+      (toggleSidebar)="toggleSidebar()">
+    </app-navbar>
 
-        <!-- Add Button -->
-        <button
-          (click)="showForm = true; isEditing = false"
-          class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-          </svg>
-          New Allocation
-        </button>
-      </div>
-    </div>
+    <!-- Main Content -->
+    <main class="flex-1 overflow-auto px-2 py-4">
+      <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+          <h1 class="text-2xl font-bold text-gray-900">Resource Allocation Management</h1>
+          <p class="text-gray-600 mt-2">Manage project allocations and resource utilization</p>
 
-    <!-- Allocation Form -->
-    <div *ngIf="showForm" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-      <h2 class="text-xl font-semibold text-gray-900 mb-4">
-        {{ isEditing ? 'Edit Allocation' : 'Create New Allocation' }}
-      </h2>
-      
-      <form [formGroup]="allocationForm" (ngSubmit)="onSubmit()" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- User Selection -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">User *</label>
-          <select 
-            formControlName="userId" 
-            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            [class.border-red-300]="isFieldInvalid('userId')"
-            [class.border-gray-300]="!isFieldInvalid('userId')"
-          >
-            <option value="">Select User</option>
-            <option *ngFor="let user of users" [value]="user.userId">
-              {{ user.firstName }} {{ user.lastName }} ({{ user.email }})
-            </option>
-          </select>
-          <div *ngIf="isFieldInvalid('userId')" class="mt-1 text-sm text-red-600">
-            {{ getFieldError('userId') }}
+          <!-- Statistics Cards -->
+          <div class="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <!-- Total Allocations -->
+            <div class="bg-white p-4 rounded-lg border border-gray-200">
+              <div class="text-sm font-medium text-gray-500">Total Allocations</div>
+              <div class="text-2xl font-bold text-gray-900">{{ totalAllocations }}</div>
+            </div>
+
+            <!-- Active Allocations -->
+            <div class="bg-white p-4 rounded-lg border border-gray-200">
+              <div class="text-sm font-medium text-gray-500">Active Allocations</div>
+              <div class="text-2xl font-bold text-green-600">{{ activeAllocations }}</div>
+            </div>
+
+            <!-- Average Allocation -->
+            <div class="bg-white p-4 rounded-lg border border-gray-200">
+              <div class="text-sm font-medium text-gray-500">Avg Allocation</div>
+              <div class="text-2xl font-bold text-gray-900">{{ averageAllocation }}%</div>
+            </div>
+
+            <!-- Utilization Rate -->
+            <div class="bg-white p-4 rounded-lg border border-gray-200">
+              <div class="text-sm font-medium text-gray-500">Utilization Rate</div>
+              <div class="text-2xl font-bold text-blue-600">{{ utilizationRate }}%</div>
+            </div>
           </div>
         </div>
 
-        <!-- Project Selection -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Project *</label>
-          <select 
-            formControlName="projectId" 
-            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            [class.border-red-300]="isFieldInvalid('projectId')"
-            [class.border-gray-300]="!isFieldInvalid('projectId')"
-          >
-            <option value="">Select Project</option>
-            <option *ngFor="let project of projects" [value]="project.projectId">
-              {{ project.name }}
-            </option>
-          </select>
-          <div *ngIf="isFieldInvalid('projectId')" class="mt-1 text-sm text-red-600">
-            {{ getFieldError('projectId') }}
-          </div>
-        </div>
-
-        <!-- Allocation Percentage -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Allocation Percentage *</label>
-          <input
-            type="number"
-            formControlName="allocationPercentage"
-            min="0"
-            max="100"
-            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            [class.border-red-300]="isFieldInvalid('allocationPercentage')"
-            [class.border-gray-300]="!isFieldInvalid('allocationPercentage')"
-          >
-          <div *ngIf="isFieldInvalid('allocationPercentage')" class="mt-1 text-sm text-red-600">
-            {{ getFieldError('allocationPercentage') }}
-          </div>
-        </div>
-
-        <!-- Role -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Role *</label>
-          <select 
-            formControlName="role" 
-            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            [class.border-red-300]="isFieldInvalid('role')"
-            [class.border-gray-300]="!isFieldInvalid('role')"
-          >
-            <option value="">Select Role</option>
-            <option *ngFor="let role of roles" [value]="role">{{ role }}</option>
-          </select>
-          <div *ngIf="isFieldInvalid('role')" class="mt-1 text-sm text-red-600">
-            {{ getFieldError('role') }}
-          </div>
-        </div>
-
-        <!-- Start Date -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Start Date *</label>
-          <input
-            type="date"
-            formControlName="startDate"
-            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            [class.border-red-300]="isFieldInvalid('startDate')"
-            [class.border-gray-300]="!isFieldInvalid('startDate')"
-          >
-          <div *ngIf="isFieldInvalid('startDate')" class="mt-1 text-sm text-red-600">
-            {{ getFieldError('startDate') }}
-          </div>
-        </div>
-
-        <!-- End Date -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">End Date *</label>
-          <input
-            type="date"
-            formControlName="endDate"
-            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            [class.border-red-300]="isFieldInvalid('endDate')"
-            [class.border-gray-300]="!isFieldInvalid('endDate')"
-          >
-          <div *ngIf="isFieldInvalid('endDate')" class="mt-1 text-sm text-red-600">
-            {{ getFieldError('endDate') }}
-          </div>
-        </div>
-
-        <!-- Status -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Status *</label>
-          <select 
-            formControlName="status" 
-            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            [class.border-red-300]="isFieldInvalid('status')"
-            [class.border-gray-300]="!isFieldInvalid('status')"
-          >
-            <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
-          </select>
-          <div *ngIf="isFieldInvalid('status')" class="mt-1 text-sm text-red-600">
-            {{ getFieldError('status') }}
-          </div>
-        </div>
-
-        <!-- Notes (Full Width) -->
-        <div class="md:col-span-2 lg:col-span-3">
-          <label class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
-          <textarea
-            formControlName="notes"
-            rows="3"
-            placeholder="Additional notes about the allocation..."
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          ></textarea>
-        </div>
-
-        <!-- Date Range Error -->
-        <div *ngIf="allocationForm.errors?.['dateRange']" class="md:col-span-2 lg:col-span-3">
-          <div class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
-            End date must be after start date.
-          </div>
-        </div>
-
-        <!-- Form Actions -->
-        <div class="md:col-span-2 lg:col-span-3 flex gap-3 justify-between items-center pt-4 border-t border-gray-200">
-          <button
-            type="button"
-            (click)="checkAvailability()"
-            [disabled]="!allocationForm.get('userId')?.value || !allocationForm.get('startDate')?.value || !allocationForm.get('endDate')?.value || !allocationForm.get('allocationPercentage')?.value"
-            class="bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 text-sm"
-          >
-            Check Availability
-          </button>
-
-          <div class="flex gap-3">
-            <button
-              type="button"
-              (click)="resetForm()"
-              class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              [disabled]="!allocationForm.valid || isLoading"
-              class="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
-            >
-              <span *ngIf="isLoading" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
-              {{ isEditing ? 'Update' : 'Create' }} Allocation
-            </button>
-          </div>
-        </div>
-      </form>
-    </div>
-
-    <!-- Loading State -->
-    <div *ngIf="isLoading && allocations.length === 0" class="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-      <div class="flex justify-center items-center">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-      <p class="text-gray-600 mt-4">Loading resource allocations...</p>
-    </div>
-
-    <!-- Allocations Table -->
-    <div *ngIf="!isLoading || allocations.length > 0" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="w-full">
-          <thead class="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User & Project</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Allocation</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timeline</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <tr *ngFor="let allocation of filteredAllocations" class="hover:bg-gray-50 transition-colors duration-150">
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="flex items-center">
-                  <div class="flex-shrink-0 h-10 w-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
-                    {{ allocation.userName.charAt(0) }}
-                  </div>
-                  <div class="ml-4">
-                    <div class="text-sm font-medium text-gray-900">{{ allocation.userName }}</div>
-                    <div class="text-sm text-gray-500">{{ allocation.userEmail }}</div>
-                    <div class="text-sm text-gray-700 mt-1">{{ allocation.projectName }}</div>
-                    <div class="text-xs text-gray-500">{{ allocation.role }}</div>
-                  </div>
-                </div>
-              </td>
-              
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="flex items-center">
-                  <div class="w-24 bg-gray-200 rounded-full h-2.5 mr-3">
-                    <div 
-                      class="bg-blue-600 h-2.5 rounded-full" 
-                      [style.width.%]="allocation.allocationPercentage"
-                    ></div>
-                  </div>
-                  <span class="text-sm font-medium text-gray-900">
-                    {{ allocation.allocationPercentage }}%
-                  </span>
-                </div>
-                <div *ngIf="allocation.hasOverlap" class="mt-1">
-                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                    Overlap Detected
-                  </span>
-                </div>
-              </td>
-              
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-900">
-                  {{ allocation.startDate | date:'mediumDate' }}
-                </div>
-                <div class="text-sm text-gray-500">
-                  to {{ allocation.endDate | date:'mediumDate' }}
-                </div>
-                <div class="text-xs text-gray-500 mt-1">
-                  {{ allocation.daysRemaining }} days remaining
-                </div>
-              </td>
-              
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span 
-                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                  [class]="getStatusBadgeClass(allocation.status)"
+        <!-- Controls -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <div class="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
+            <div class="flex flex-col sm:flex-row gap-4 flex-1 w-full">
+              <!-- Search -->
+              <div class="flex-1">
+                <input
+                  type="text"
+                  placeholder="Search by user, project, or role..."
+                  [(ngModel)]="searchTerm"
+                  (input)="filterAllocations()"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200"
                 >
-                  {{ allocation.status }}
-                </span>
-                <div *ngIf="allocation.isActive" class="mt-1">
-                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    Active
-                  </span>
-                </div>
-              </td>
+              </div>
               
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <div class="flex items-center space-x-2">
-                  <button
-                    (click)="editAllocation(allocation)"
-                    class="text-blue-600 hover:text-blue-900 transition-colors duration-200"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    (click)="deleteAllocation(allocation.allocationId)"
-                    class="text-red-600 hover:text-red-900 transition-colors duration-200"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </td>
-            </tr>
-            
-            <tr *ngIf="!isLoading && filteredAllocations.length === 0">
-              <td colspan="5" class="px-6 py-8 text-center text-gray-500">
-                No allocations found matching your criteria.
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              <!-- Status Filter -->
+              <div class="w-full sm:w-48">
+                <select
+                  [(ngModel)]="statusFilter"
+                  (change)="filterAllocations()"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200"
+                >
+                  <option value="ALL">All Status</option>
+                  <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Add Button -->
+            <button
+              (click)="showForm = true; isEditing = false"
+              class="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+              </svg>
+              New Allocation
+            </button>
+          </div>
+        </div>
+
+        <!-- Allocation Form -->
+        <div *ngIf="showForm" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <h2 class="text-xl font-semibold text-gray-900 mb-4">
+            {{ isEditing ? 'Edit Allocation' : 'Create New Allocation' }}
+          </h2>
+          
+          <form [formGroup]="allocationForm" (ngSubmit)="onSubmit()" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- User Selection -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">User *</label>
+              <select 
+                formControlName="userId" 
+                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200"
+                [class.border-red-300]="isFieldInvalid('userId')"
+                [class.border-gray-300]="!isFieldInvalid('userId')"
+              >
+                <option value="">Select User</option>
+                <option *ngFor="let user of users" [value]="user.userId">
+                  {{ user.firstName }} {{ user.lastName }} ({{ user.email }})
+                </option>
+              </select>
+              <div *ngIf="isFieldInvalid('userId')" class="mt-1 text-sm text-red-600">
+                {{ getFieldError('userId') }}
+              </div>
+            </div>
+
+            <!-- Project Selection -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Project *</label>
+              <select 
+                formControlName="projectId" 
+                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200"
+                [class.border-red-300]="isFieldInvalid('projectId')"
+                [class.border-gray-300]="!isFieldInvalid('projectId')"
+              >
+                <option value="">Select Project</option>
+                <option *ngFor="let project of projects" [value]="project.projectId">
+                  {{ project.name }}
+                </option>
+              </select>
+              <div *ngIf="isFieldInvalid('projectId')" class="mt-1 text-sm text-red-600">
+                {{ getFieldError('projectId') }}
+              </div>
+            </div>
+
+            <!-- Allocation Percentage -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Allocation Percentage *</label>
+              <input
+                type="number"
+                formControlName="allocationPercentage"
+                min="0"
+                max="100"
+                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200"
+                [class.border-red-300]="isFieldInvalid('allocationPercentage')"
+                [class.border-gray-300]="!isFieldInvalid('allocationPercentage')"
+              >
+              <div *ngIf="isFieldInvalid('allocationPercentage')" class="mt-1 text-sm text-red-600">
+                {{ getFieldError('allocationPercentage') }}
+              </div>
+            </div>
+
+            <!-- Role -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Role *</label>
+              <select 
+                formControlName="role" 
+                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200"
+                [class.border-red-300]="isFieldInvalid('role')"
+                [class.border-gray-300]="!isFieldInvalid('role')"
+              >
+                <option value="">Select Role</option>
+                <option *ngFor="let role of roles" [value]="role">{{ role }}</option>
+              </select>
+              <div *ngIf="isFieldInvalid('role')" class="mt-1 text-sm text-red-600">
+                {{ getFieldError('role') }}
+              </div>
+            </div>
+
+            <!-- Start Date -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Start Date *</label>
+              <input
+                type="date"
+                formControlName="startDate"
+                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200"
+                [class.border-red-300]="isFieldInvalid('startDate')"
+                [class.border-gray-300]="!isFieldInvalid('startDate')"
+              >
+              <div *ngIf="isFieldInvalid('startDate')" class="mt-1 text-sm text-red-600">
+                {{ getFieldError('startDate') }}
+              </div>
+            </div>
+
+            <!-- End Date -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">End Date *</label>
+              <input
+                type="date"
+                formControlName="endDate"
+                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200"
+                [class.border-red-300]="isFieldInvalid('endDate')"
+                [class.border-gray-300]="!isFieldInvalid('endDate')"
+              >
+              <div *ngIf="isFieldInvalid('endDate')" class="mt-1 text-sm text-red-600">
+                {{ getFieldError('endDate') }}
+              </div>
+            </div>
+
+            <!-- Status -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Status *</label>
+              <select 
+                formControlName="status" 
+                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200"
+                [class.border-red-300]="isFieldInvalid('status')"
+                [class.border-gray-300]="!isFieldInvalid('status')"
+              >
+                <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+              </select>
+              <div *ngIf="isFieldInvalid('status')" class="mt-1 text-sm text-red-600">
+                {{ getFieldError('status') }}
+              </div>
+            </div>
+
+            <!-- Notes (Full Width) -->
+            <div class="md:col-span-2 lg:col-span-3">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+              <textarea
+                formControlName="notes"
+                rows="3"
+                placeholder="Additional notes about the allocation..."
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200"
+              ></textarea>
+            </div>
+
+            <!-- Date Range Error -->
+            <div *ngIf="allocationForm.errors?.['dateRange']" class="md:col-span-2 lg:col-span-3">
+              <div class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
+                End date must be after start date.
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="md:col-span-2 lg:col-span-3 flex gap-3 justify-between items-center pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                (click)="checkAvailability()"
+                [disabled]="!allocationForm.get('userId')?.value || !allocationForm.get('startDate')?.value || !allocationForm.get('endDate')?.value || !allocationForm.get('allocationPercentage')?.value"
+                class="bg-gray-500 hover:bg-gray-600 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 text-sm"
+              >
+                Check Availability
+              </button>
+
+              <div class="flex gap-3">
+                <button
+                  type="button"
+                  (click)="resetForm()"
+                  class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  [disabled]="!allocationForm.valid || isLoading"
+                  class="bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+                >
+                  <span *ngIf="isLoading" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                  {{ isEditing ? 'Update' : 'Create' }} Allocation
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- Loading State -->
+        <div *ngIf="isLoading && allocations.length === 0" class="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+          <div class="flex justify-center items-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+          </div>
+          <p class="text-gray-600 mt-4">Loading resource allocations...</p>
+        </div>
+
+        <!-- Allocations Table -->
+        <div *ngIf="!isLoading || allocations.length > 0" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User & Project</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Allocation</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timeline</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr *ngFor="let allocation of filteredAllocations" class="hover:bg-gray-50 transition-colors duration-150">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                      <div class="flex-shrink-0 h-10 w-10 bg-orange-500 rounded-full flex items-center justify-center text-white font-semibold">
+                        {{ allocation.userName.charAt(0) }}
+                      </div>
+                      <div class="ml-4">
+                        <div class="text-sm font-medium text-gray-900">{{ allocation.userName }}</div>
+                        <div class="text-sm text-gray-500">{{ allocation.userEmail }}</div>
+                        <div class="text-sm text-gray-700 mt-1">{{ allocation.projectName }}</div>
+                        <div class="text-xs text-gray-500">{{ allocation.role }}</div>
+                      </div>
+                    </div>
+                  </td>
+                  
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                      <div class="w-24 bg-gray-200 rounded-full h-2.5 mr-3">
+                        <div 
+                          class="bg-orange-500 h-2.5 rounded-full" 
+                          [style.width.%]="allocation.allocationPercentage"
+                        ></div>
+                      </div>
+                      <span class="text-sm font-medium text-gray-900">
+                        {{ allocation.allocationPercentage }}%
+                      </span>
+                    </div>
+                    <div *ngIf="allocation.hasOverlap" class="mt-1">
+                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        Overlap Detected
+                      </span>
+                    </div>
+                  </td>
+                  
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">
+                      {{ allocation.startDate | date:'mediumDate' }}
+                    </div>
+                    <div class="text-sm text-gray-500">
+                      to {{ allocation.endDate | date:'mediumDate' }}
+                    </div>
+                    <div class="text-xs text-gray-500 mt-1">
+                      {{ allocation.daysRemaining }} days remaining
+                    </div>
+                  </td>
+                  
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span 
+                      class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                      [class]="getStatusBadgeClass(allocation.status)"
+                    >
+                      {{ allocation.status }}
+                    </span>
+                    <div *ngIf="allocation.isActive" class="mt-1">
+                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Active
+                      </span>
+                    </div>
+                  </td>
+                  
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div class="flex items-center space-x-2">
+                      <button
+                        (click)="editAllocation(allocation)"
+                        class="text-orange-600 hover:text-orange-900 transition-colors duration-200"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        (click)="deleteAllocation(allocation.allocationId)"
+                        class="text-red-600 hover:text-red-900 transition-colors duration-200"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                
+                <tr *ngIf="!isLoading && filteredAllocations.length === 0">
+                  <td colspan="5" class="px-6 py-8 text-center text-gray-500">
+                    No allocations found matching your criteria.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
-    </div>
+    </main>
   </div>
 </div>

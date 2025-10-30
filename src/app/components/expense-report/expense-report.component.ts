@@ -225,4 +225,11 @@ export class ExpenseReportComponent implements OnInit {
 
     return 'All time';
   }
+
+   isSidebarOpen: boolean = false;
+
+
+  toggleSidebar(): void {
+    this.isSidebarOpen = !this.isSidebarOpen;
+  }
 }
